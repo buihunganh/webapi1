@@ -230,9 +230,9 @@
     <!-- PROFILE -->
     <div class="s-profile-card">
       <div class="s-avatar">🛵</div>
-      <div class="s-name" id="s-name">NGUYỄN VĂN</div>
-      <div class="s-role">⭐ SENIOR SHIPPER</div>
-      <div class="s-zone">📍 Zone: Hoan Kiem, Hanoi</div>
+      <div class="s-name" id="s-name">SHIPPER</div>
+      <div class="s-role">⭐ SHIPPER</div>
+      <!-- ✗ REMOVED: zone display (not in database) -->
       <div class="s-status-toggle">
         <div>
           <div class="s-status-label" id="status-label">🟢 ONLINE</div>
@@ -280,8 +280,8 @@
     <div style="display:flex;flex-direction:column;gap:8px">
       <a class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" href="/customer">👤 Customer Portal</a>
       <a class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" href="/admin/dashboard">⚙️ Admin Dashboard</a>
-      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="showToast('Map feature is coming soon!','info')">🗺️ Open Map</button>
-      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="showToast('Contacting support center...','info')">📞 Contact Support</button>
+      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="shipperToast('Map feature is coming soon!','info')">🗺️ Open Map</button>
+      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="shipperToast('Contacting support center...','info')">📞 Contact Support</button>
       <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:12px;color:var(--red-light)" onclick="logout()">🚪 Logout</button>
     </div>
 
@@ -319,7 +319,9 @@
   </div>
 </div>
 
-<script src="/static/js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/static/js/supabase-web.js"></script>
+<script src="/static/js/api-client.js"></script>
 <script src="/static/js/shipper.js"></script>
 </body>
 </html>

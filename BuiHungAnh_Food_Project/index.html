@@ -57,6 +57,10 @@
             <div class="user-greeting-title" id="user-greeting">Hello, User</div>
             <button class="mobile-nav-link user-dropdown-link" onclick="openModal('orders-modal')">📦
               My Orders</button>
+            <button class="mobile-nav-link user-dropdown-link is-hidden" id="customer-access-btn"
+              onclick="openCustomerPortal()">👤 Customer Portal</button>
+            <button class="mobile-nav-link user-dropdown-link is-hidden" id="shipper-access-btn"
+              onclick="openShipperWorkspace()">🛵 Shipper Workspace</button>
             <button class="mobile-nav-link user-dropdown-link is-hidden" id="admin-access-btn"
               onclick="openAdminDashboard()">⚙️ Admin Dashboard</button>
             <button class="mobile-nav-link user-dropdown-link user-dropdown-logout"
@@ -997,6 +1001,9 @@
   </div>
 </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="static/js/supabase-web.js"></script>
+  <script src="static/js/api-client.js"></script>
   <script src="static/js/main.js"></script>
 </body>
 

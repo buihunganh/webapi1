@@ -1,71 +1,17 @@
 const CUSTOMER_STATE = {
     user: {
-        id: 2,
-        name: 'Minh Tran',
-        email: 'minh@example.com',
-        phone: '+84 901 234 567',
-        dob: '1998-08-21',
-        points: 480,
-        totalSaved: 36,
+        id: null,
+        name: 'Guest',
+        email: '',
+        phone: '',
+        // ❌ REMOVED: dob, points, totalSaved (not in database)
     },
-    orders: [
-        {
-            id: '#SF-2108',
-            items: ['Volcano Noodles x2', 'Shisa Fire Cola x1'],
-            total: 32.97,
-            date: '2026-03-27 19:24',
-            status: 'delivered',
-            eta: 'Delivered',
-        },
-        {
-            id: '#SF-2112',
-            items: ['Dragon Ramen x1', 'Volcano Fries x1'],
-            total: 19.48,
-            date: '2026-03-28 11:18',
-            status: 'shipping',
-            eta: '12 mins',
-        },
-        {
-            id: '#SF-2116',
-            items: ['Shisa Spicy Pizza x1', 'Bubble Tea x2'],
-            total: 28.47,
-            date: '2026-03-29 10:02',
-            status: 'preparing',
-            eta: '20 mins',
-        },
-        {
-            id: '#SF-2119',
-            items: ['Fire Wings x1'],
-            total: 9.99,
-            date: '2026-03-29 10:26',
-            status: 'pending',
-            eta: 'Waiting confirm',
-        },
-    ],
-    wishlist: [
-        { id: 5, name: 'Shisa Spicy Pizza', emoji: '🍕', price: 16.99 },
-        { id: 8, name: 'Dragon Bubble Tea', emoji: '🧋', price: 5.49 },
-        { id: 13, name: 'Fire Wings (8pcs)', emoji: '🍗', price: 9.99 },
-    ],
-    addresses: [
-        {
-            id: 1,
-            name: 'Home',
-            address: '123 Fire Street, Hoan Kiem, Hanoi',
-            note: 'Call before arrival',
-            isDefault: true,
-            icon: '🏠',
-        },
-        {
-            id: 2,
-            name: 'Office',
-            address: '15th Floor, Sun Tower, Cau Giay, Hanoi',
-            note: 'Deliver at lobby',
-            isDefault: false,
-            icon: '🏢',
-        },
-    ],
+    orders: [], // Will load from API
+    wishlist: [], // Will load from API
+    addresses: [], // Will load from API
 };
+
+const SESSION_USER_KEY = 'shisa_current_user';
 
 const ORDER_STATUS = {
     delivered: { label: '✅ Completed', cls: 'sbadge-success' },
@@ -87,6 +33,48 @@ function formatMoney(value) {
     return `$${Number(value).toFixed(2)}`;
 }
 
+function formatOrderDisplayId(dbId) {
+    return `#SF-${String(dbId).padStart(4, '0')}`;
+}
+
+function loadUserFromSession() {
+    try {
+        const raw = localStorage.getItem(SESSION_USER_KEY);
+        if (!raw) return;
+        const user = JSON.parse(raw);
+        if (!user) return;
+        CUSTOMER_STATE.user.name = user.name || CUSTOMER_STATE.user.name;
+        CUSTOMER_STATE.user.email = user.email || CUSTOMER_STATE.user.email;
+    } catch (_) {
+        // Keep default state when session data is not available.
+    }
+}
+
+async function loadOrdersFromAPI() {
+    if (typeof APIClient === 'undefined') return;
+    try {
+        const items = await APIClient.getOrders(200);
+        if (!Array.isArray(items) || !items.length) return;
+
+        CUSTOMER_STATE.orders = items.map((o) => ({
+            id: formatOrderDisplayId(o.orderid),
+            items: [o.notes || 'View order details'],
+            total: Number(o.totalamount || 0),
+            date: o.orderdate ? new Date(o.orderdate).toLocaleString() : '-',
+            status: o.orderstatus === 'completed'
+                ? 'delivered'
+                : o.orderstatus === 'shipping'
+                ? 'shipping'
+                : o.orderstatus === 'waiting_for_shipper'
+                ? 'preparing'
+                : o.orderstatus || 'pending',
+            eta: o.orderstatus === 'completed' ? 'Delivered' : 'Processing',
+        }));
+    } catch (err) {
+        toast(`Using local order data: ${err.message || err}`, 'info');
+    }
+}
+
 function switchTab(tab, button) {
     document.querySelectorAll('.cust-tab').forEach((el) => el.classList.remove('active'));
     document.querySelectorAll('.c-panel').forEach((el) => el.classList.remove('active'));
@@ -102,26 +90,22 @@ function renderProfile() {
     const profileName = document.getElementById('profile-name');
     const profileEmail = document.getElementById('profile-email');
     const statOrders = document.getElementById('pstat-orders');
-    const statPoints = document.getElementById('pstat-points');
-    const statSaved = document.getElementById('pstat-saved');
 
     if (avatarLetter) avatarLetter.textContent = user.name.charAt(0).toUpperCase();
     if (profileName) profileName.textContent = user.name.toUpperCase();
     if (profileEmail) profileEmail.textContent = user.email;
     if (statOrders) statOrders.textContent = orders.length;
-    if (statPoints) statPoints.textContent = user.points;
-    if (statSaved) statSaved.textContent = `$${user.totalSaved}`;
+    // ❌ REMOVED: points and totalSaved display (not in database)
 
     const nameInput = document.getElementById('s-name');
     const emailInput = document.getElementById('s-email');
     const phoneInput = document.getElementById('s-phone');
-    const dobInput = document.getElementById('s-dob');
 
     if (nameInput) nameInput.value = user.name;
     if (emailInput) emailInput.value = user.email;
     if (phoneInput) phoneInput.value = user.phone;
-    if (dobInput) dobInput.value = user.dob;
-}
+    // ❌ REMOVED: dob input (not in database)
+}}
 
 function renderOrders() {
     const list = document.getElementById('orders-list');
@@ -277,14 +261,14 @@ function saveSettings() {
     const name = document.getElementById('s-name')?.value.trim();
     const email = document.getElementById('s-email')?.value.trim();
     const phone = document.getElementById('s-phone')?.value.trim();
-    const dob = document.getElementById('s-dob')?.value;
+    // ✗ REMOVED: dob (not in database)
 
     if (!name || !email || !phone) {
         toast('Please fill in all required information', 'error');
         return;
     }
 
-    Object.assign(CUSTOMER_STATE.user, { name, email, phone, dob });
+    Object.assign(CUSTOMER_STATE.user, { name, email, phone });
     renderProfile();
     toast('Profile updated successfully', 'success');
 }
@@ -304,7 +288,9 @@ function logout() {
     }, 800);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    loadUserFromSession();
+    await loadOrdersFromAPI();
     renderProfile();
     renderOrders();
     renderWishlist();

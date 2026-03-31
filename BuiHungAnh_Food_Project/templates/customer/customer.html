@@ -217,8 +217,7 @@
         <div class="profile-email" id="profile-email">minh@example.com</div>
         <div class="profile-stats">
           <div><div class="profile-stat-num" id="pstat-orders">12</div><div class="profile-stat-label">Orders</div></div>
-          <div><div class="profile-stat-num" id="pstat-points">480</div><div class="profile-stat-label">Reward Points</div></div>
-          <div><div class="profile-stat-num" id="pstat-saved">$36</div><div class="profile-stat-label">Total Saved</div></div>
+          <!-- ✗ REMOVED: pstat-points and pstat-saved (not in database) -->
         </div>
       </div>
       <div style="margin-left:auto">
@@ -232,17 +231,7 @@
 <section class="section" style="padding-top:32px">
   <div class="container">
 
-    <!-- LOYALTY PROGRESS -->
-    <div class="settings-card" style="margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-family:var(--font-cond);font-size:15px;font-weight:700;letter-spacing:1px">🥇 LOYALTY PROGRAM</div>
-        <span class="sbadge sbadge-warning">480 / 1000 points -> PLATINUM</span>
-      </div>
-      <div class="loyalty-bar-wrap">
-        <div class="loyalty-bar-track"><div class="loyalty-bar-fill" style="width:48%"></div></div>
-        <div class="loyalty-labels"><span>SILVER (0)</span><span>GOLD (250) ✓</span><span>PLATINUM (1000)</span></div>
-      </div>
-    </div>
+    <!-- ✗ LOYALTY PROGRAM REMOVED (points field not in database) -->
 
     <!-- TABS -->
     <div class="cust-tabs">
@@ -265,7 +254,7 @@
     <!-- TAB: ADDRESS -->
     <div class="c-panel" id="tab-address">
       <div id="address-list"></div>
-      <button class="btn btn-outline" style="margin-top:8px" onclick="showToast('Add address feature is coming soon!','info')">+ Add New Address</button>
+      <button class="btn btn-outline" style="margin-top:8px" onclick="toast('Add address feature is coming soon!','info')">+ Add New Address</button>
     </div>
 
     <!-- TAB: SETTINGS -->
@@ -278,7 +267,7 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label>Phone Number</label><input type="tel" class="form-control" id="s-phone" placeholder="+84 xxx xxx xxx"></div>
-          <div class="form-group"><label>Date Of Birth</label><input type="date" class="form-control" id="s-dob"></div>
+          <!-- ✗ REMOVED: s-dob field (not in database) -->
         </div>
         <button class="btn btn-primary" style="padding:12px 28px" onclick="saveSettings()">💾 Save Changes</button>
       </div>
@@ -289,12 +278,12 @@
           <div class="form-group"><label>New Password</label><input type="password" class="form-control" placeholder="••••••••"></div>
           <div class="form-group"><label>Confirm Password</label><input type="password" class="form-control" placeholder="••••••••"></div>
         </div>
-        <button class="btn btn-primary" style="padding:12px 28px" onclick="showToast('Password updated successfully!','success')">🔒 Update Password</button>
+        <button class="btn btn-primary" style="padding:12px 28px" onclick="toast('Password updated successfully!','success')">🔒 Update Password</button>
       </div>
       <div class="settings-card">
         <div class="settings-card-title" style="color:var(--red-light)">Danger Zone</div>
         <p style="font-size:14px;color:var(--gray-text);margin-bottom:16px">Deleting your account is irreversible. All of your data will be permanently removed.</p>
-        <button class="btn" style="background:rgba(232,0,13,0.15);color:var(--red-light);border:1px solid rgba(232,0,13,0.3)" onclick="showToast('Please contact admin to delete your account','info')">🗑️ Delete Account</button>
+        <button class="btn" style="background:rgba(232,0,13,0.15);color:var(--red-light);border:1px solid rgba(232,0,13,0.3)" onclick="toast('Please contact admin to delete your account','info')">🗑️ Delete Account</button>
       </div>
     </div>
 
@@ -318,7 +307,9 @@
   </div>
 </footer>
 
-<script src="/static/js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/static/js/supabase-web.js"></script>
+<script src="/static/js/api-client.js"></script>
 <script src="/static/js/customer.js"></script>
 </body>
 </html>

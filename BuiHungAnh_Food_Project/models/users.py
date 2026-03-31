@@ -1,5 +1,24 @@
-from models.database import get_connection
 import hashlib
+from typing import Any, Optional
+
+from models.supabase_client import get_supabase
+
+ROLE_NAME_TO_ID = {
+    'admin': 1,
+    'shipper': 2,
+    'customer': 3,
+}
+
+
+def _normalize_role_id(role: Any = None) -> Optional[int]:
+    """Convert role input (int/str) to RoleID or None."""
+    if role is None:
+        return None
+    if isinstance(role, (int, float)):
+        role_int = int(role)
+        return role_int if role_int in ROLE_NAME_TO_ID.values() else None
+    role_name = str(role).strip().lower()
+    return ROLE_NAME_TO_ID.get(role_name)
 
 
 def hash_password(plain_password):
@@ -29,51 +48,65 @@ def verify_password(input_password, stored_hash):
 
     return False
 
-def get_all_users():
-    """SELECT tất cả người dùng từ bảng Users"""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT u.UserID, u.FullName, u.Email, u.Phone, u.RoleID, u.IsActive, u.CreatedAt
-        FROM Users u
-        ORDER BY u.UserID DESC
-        """
-    )
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
+def get_all_users(limit: int = 500):
+    """SELECT tất cả người dùng từ bảng Users (legacy helper)."""
+    return get_users(limit=limit)
+
+
+def get_users(limit: int = 500, role: Any = None):
+    """Flexible SELECT theo role / limit từ bảng Users."""
+    sb = get_supabase()
+    query = sb.table('users').select('userid,fullname,email,phone,roleid,isactive,createdat').order('userid', desc=True).limit(limit)
+    role_id = _normalize_role_id(role)
+    if role_id is not None:
+        query = query.eq('roleid', role_id)
+    response = query.execute()
+    return response.data or []
 
 def insert_user(full_name, email, password_hash, role_id=3, phone=None):
     """INSERT người dùng mới vào bảng Users"""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO Users (FullName, Email, Phone, PasswordHash, RoleID)
-        OUTPUT INSERTED.UserID
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (full_name, email, phone, password_hash, role_id)
-    )
-    new_id = int(cursor.fetchone()[0])
-    conn.commit()
-    conn.close()
-    return new_id
+    sb = get_supabase()
+    payload = {
+        'fullname': full_name,
+        'email': email,
+        'phone': phone,
+        'passwordhash': password_hash,
+        'roleid': role_id,
+    }
+    response = sb.table('users').insert(payload).execute()
+    inserted = (response.data or [])
+    if not inserted:
+        raise RuntimeError('Failed to insert user')
+    return int(inserted[0]['userid'])
 
 
 def get_user_by_email(email):
     """SELECT 1 người dùng theo email"""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT TOP 1 UserID, FullName, Email, Phone, PasswordHash, RoleID, IsActive
-        FROM Users
-        WHERE Email = ?
-        """,
-        (email,)
-    )
-    row = cursor.fetchone()
-    conn.close()
-    return row
+    sb = get_supabase()
+    response = sb.table('users').select('userid,fullname,email,phone,passwordhash,roleid,isactive').eq('email', email).limit(1).execute()
+    rows = response.data or []
+    return rows[0] if rows else None
+
+
+def get_user_by_id(user_id: int):
+    sb = get_supabase()
+    response = sb.table('users').select('userid,fullname,email,phone,roleid,isactive,createdat').eq('userid', user_id).limit(1).execute()
+    rows = response.data or []
+    return rows[0] if rows else None
+
+
+def update_user(user_id: int, **fields):
+    """Update user fields; silently ignore empty payloads."""
+    allowed = {'fullname', 'phone', 'roleid', 'isactive', 'passwordhash', 'email'}
+    payload = {k: v for k, v in fields.items() if k in allowed and v is not None}
+    if not payload:
+        return False
+    sb = get_supabase()
+    response = sb.table('users').update(payload).eq('userid', user_id).execute()
+    return bool(response.data)
+
+
+def set_user_active(user_id: int, is_active: bool):
+    sb = get_supabase()
+    response = sb.table('users').update({'isactive': is_active}).eq('userid', user_id).execute()
+    return bool(response.data)

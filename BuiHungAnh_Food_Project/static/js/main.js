@@ -16,6 +16,14 @@
       promoApplied: null,
     };
 
+    function getAppBaseUrl() {
+      const { protocol, hostname, port, host } = window.location;
+      if (port === '5501') {
+        return `${protocol}//${hostname}:5500`;
+      }
+      return `${protocol}//${host}`;
+    }
+
     const PROMOS = {
       'SHISA20': { type: 'percent', value: 20, min: 20, desc: '20% off' },
       'FIRE10': { type: 'flat', value: 10, min: 35, desc: '$10 off' },
@@ -29,32 +37,13 @@
       { id: 'sides', name: 'Sides', icon: '🍟', desc: 'Side Dishes' },
     ];
 
-    let PRODUCTS = [
-      { id: 1, name: 'Volcano Noodles', cat: 'noodles', price: 14.99, emoji: '🍜', desc: 'Our signature fiery noodle broth with rich pork bone base, extra thick noodles, and a side of habanero oil. A true test of courage.', tags: ['spicy', 'best-seller'], available: true, rating: 5, reviews: [] },
-      { id: 2, name: 'Dragon Ramen', cat: 'noodles', price: 13.49, emoji: '🫕', desc: 'Classic ramen elevated with Shisa dragon sauce, soft-boiled egg, chashu pork, and crispy fried shallots.', tags: ['spicy', 'new'], available: true, rating: 4.8, reviews: [] },
-      { id: 3, name: 'Inferno Udon', cat: 'noodles', price: 12.99, emoji: '🍝', desc: 'Thick chewy udon noodles in a blazing miso broth, topped with spicy minced pork and seasonal greens.', tags: ['spicy'], available: true, rating: 4.7, reviews: [] },
-      { id: 4, name: 'Cold Fire Soba', cat: 'noodles', price: 11.99, emoji: '🥢', desc: 'Chilled soba noodles with our house-made chili dipping sauce — deceptively spicy, refreshingly bold.', tags: ['new'], available: true, rating: 4.6, reviews: [] },
-      { id: 5, name: 'Shisa Spicy Pizza', cat: 'pizza', price: 16.99, emoji: '🍕', desc: 'Hand-tossed dough with fire sauce, mozzarella, jalapeño, spicy salami, and a drizzle of chili honey.', tags: ['best-seller', 'spicy'], available: true, rating: 4.9, reviews: [] },
-      { id: 6, name: 'Inferno Margherita', cat: 'pizza', price: 15.49, emoji: '🫓', desc: 'Classic margherita reimagined with ghost pepper basil oil, bufala mozzarella, and charred tomatoes.', tags: ['spicy', 'new'], available: true, rating: 4.7, reviews: [] },
-      { id: 7, name: 'BBQ Fire Pizza', cat: 'pizza', price: 17.99, emoji: '🔥', desc: 'Smoky BBQ sauce base, pulled pork, caramelized onions, jalapeños, and crispy bacon bits.', tags: ['best-seller'], available: true, rating: 4.8, reviews: [] },
-      { id: 8, name: 'Shisa Fire Cola', cat: 'beverages', price: 3.99, emoji: '🥤', desc: 'Our signature spicy cola infusion with a kick of chili and fresh lime. Bold and refreshing.', tags: ['best-seller'], available: true, rating: 4.5, reviews: [] },
-      { id: 9, name: 'Mango Habanero Slush', cat: 'beverages', price: 4.99, emoji: '🧃', desc: 'Sweet mango blended with habanero purée and crushed ice. Fruity heat in a glass.', tags: ['new'], available: true, rating: 4.6, reviews: [] },
-      { id: 10, name: 'Dragon Bubble Tea', cat: 'beverages', price: 5.49, emoji: '🧋', desc: 'Brown sugar bubble tea with a swirl of red chili syrup. Surprisingly addictive.', tags: ['new', 'best-seller'], available: true, rating: 4.7, reviews: [] },
-      { id: 11, name: 'Volcano Fries', cat: 'sides', price: 5.99, emoji: '🍟', desc: 'Thick-cut fries tossed in our signature volcano spice blend, served with sriracha aioli.', tags: ['spicy', 'best-seller'], available: true, rating: 4.8, reviews: [] },
-      { id: 12, name: 'Spicy Gyoza (6pcs)', cat: 'sides', price: 7.49, emoji: '🥟', desc: 'Pan-fried pork and chili gyoza with a crispy bottom and juicy filling. Served with chili vinegar.', tags: ['spicy'], available: true, rating: 4.7, reviews: [] },
-      { id: 13, name: 'Fire Wings (8pcs)', cat: 'sides', price: 9.99, emoji: '🍗', desc: 'Crispy chicken wings glazed in three levels of heat: mild fire, dragon fire, and inferno.', tags: ['spicy', 'best-seller'], available: true, rating: 4.9, reviews: [] },
-      { id: 14, name: 'Kimchi Spring Rolls', cat: 'sides', price: 6.99, emoji: '🥕', desc: 'Crispy golden rolls stuffed with kimchi, glass noodles, and a touch of gochujang.', tags: ['new'], available: false, rating: 4.5, reviews: [] },
-    ];
+    let PRODUCTS = []; // Will be loaded from API
 
     const USERS_STORAGE_KEY = 'shisa_users';
     const SESSION_STORAGE_KEY = 'shisa_current_user_email';
     const SESSION_USER_KEY = 'shisa_current_user';
 
-    let USERS = [
-      { id: 1, name: 'Admin User', email: 'admin@shisa.com', role: 'admin', orders: [], joined: '2024-01-15' },
-      { id: 2, name: 'Minh Tran', email: 'minh@example.com', role: 'customer', orders: [], joined: '2024-03-20' },
-      { id: 3, name: 'Sarah K.', email: 'sarah@example.com', role: 'customer', orders: [], joined: '2024-05-10' },
-    ];
+    let USERS = []; // Will be loaded from API
 
     function saveUsersToStorage() {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(USERS));
@@ -90,22 +79,144 @@
       onLoginSuccess(false);
     }
 
-    let ORDERS = [
-      { id: '#SF1001', customer: 'Minh Tran', items: 'Volcano Noodles x2, Shisa Fire Cola', total: 32.97, status: 'completed', date: '2025-03-20' },
-      { id: '#SF1002', customer: 'Sarah K.', items: 'Shisa Spicy Pizza, Dragon Bubble Tea', total: 22.48, status: 'pending', date: '2025-03-21' },
-      { id: '#SF1003', customer: 'Alex Nguyen', items: 'Fire Wings, Volcano Fries, Inferno Udon', total: 28.97, status: 'completed', date: '2025-03-22' },
-    ];
+    async function restoreSupabaseSession() {
+      if (state.currentUser || !window.SupabaseWeb) return;
+      try {
+        const sbUser = await window.SupabaseWeb.getSessionUser();
+        if (!sbUser || !sbUser.email) return;
+        const profile = await resolveProfileByEmail(sbUser.email);
+        state.currentUser = profile;
+        onLoginSuccess(false);
+      } catch (err) {
+        console.warn('Cannot restore Supabase session:', err);
+      }
+    }
 
-    const COMBOS = {
-      'noodle-drink-combo': { name: 'Noodle + Drink Combo', price: 17.99, emoji: '🍜🥤' },
-      'pizza-party-combo': { name: 'Pizza Party Set', price: 29.99, emoji: '🍕🥤🍟' },
-      'mega-feast-combo': { name: 'Mega Shisa Feast', price: 44.99, emoji: '🍜🍕🥤🍟' },
-    };
+    async function resolveProfileByEmail(email) {
+      try {
+        const profileData = await APIClient.getAuthProfile(email);
+        if (profileData && profileData.ok && profileData.user) {
+          return profileData.user;
+        }
+      } catch (_) {
+        // Use fallback profile below.
+      }
+      return {
+        id: null,
+        name: email.split('@')[0],
+        email,
+        phone: null,
+        role: 'customer',
+        role_id: 3,
+      };
+    }
+
+    let ORDERS = []; // Will be loaded from API
+
+    let COMBOS = []; // Will be loaded from API
+
+    // ========== API DATA LOADING ==========
+    /**
+     * Load products dari backend API
+     * Fallback ke hardcoded data jika API gagal
+     */
+    async function loadProductsFromAPI() {
+      try {
+        let apiProducts = [];
+
+        if (window.SupabaseWeb && typeof window.SupabaseWeb.fetchProductsViaRest === 'function') {
+          try {
+            apiProducts = await window.SupabaseWeb.fetchProductsViaRest(100);
+            console.log('Loaded ' + apiProducts.length + ' products from Supabase REST');
+          } catch (sbErr) {
+            console.warn('Supabase REST products failed, fallback to backend API:', sbErr);
+          }
+        }
+
+        if (!apiProducts || !apiProducts.length) {
+          apiProducts = await APIClient.getProducts(100);
+        }
+
+        if (apiProducts && apiProducts.length > 0) {
+          // Map API products ke format UI
+          PRODUCTS = apiProducts.map((p, idx) => ({
+            id: p.productid || idx + 1,
+            name: p.productname || 'Unnamed product',
+            cat: p.categoryid === 1 ? 'noodles' : p.categoryid === 2 ? 'pizza' : p.categoryid === 3 ? 'beverages' : 'sides',
+            price: parseFloat(p.price || 0),
+            emoji: '🍕', // Default emoji
+            desc: p.description || '',
+            tags: [],
+            available: p.isactive !== false,
+            rating: 4.5,
+            reviews: [],
+          }));
+          console.log('✅ Loaded ' + PRODUCTS.length + ' products from API');
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load products from API, using hardcoded data:', err);
+      }
+    }
+
+    /**
+     * Load users dari backend API
+     * Fallback ke hardcoded data jika API gagal
+     */
+    async function loadUsersFromAPI() {
+      try {
+        const apiUsers = await APIClient.getUsers(100);
+        if (apiUsers && apiUsers.length > 0) {
+          USERS = apiUsers.map(u => ({
+            id: u.userid,
+            name: u.fullname,
+            email: u.email,
+            role: u.roleid === 1 ? 'admin' : u.roleid === 2 ? 'shipper' : 'customer',
+            orders: [],
+            joined: (u.createdat ? new Date(u.createdat).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          }));
+          console.log('✅ Loaded ' + USERS.length + ' users from API');
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load users from API, using hardcoded data:', err);
+      }
+    }
+
+    /**
+     * Check API Server Health
+     */
+    async function checkAPIHealth() {
+      try {
+        const health = await APIClient.health();
+        if (health.ok) {
+          console.log('✅ API Server OK - Database: ' + health.database);
+          document.title = 'ShisaFood 🔥 [Connected to ' + health.database + ']';
+        }
+      } catch (err) {
+        console.warn('⚠️ API Server not reachable:', err);
+      }
+    }
 
     // ========== INIT ==========
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
+      if (window.SupabaseWeb) {
+        try {
+          await window.SupabaseWeb.init();
+        } catch (err) {
+          console.warn('Supabase init failed:', err);
+        }
+      }
+
+      // Check API Server
+      await checkAPIHealth();
+      
+      // Load data from API
+      await loadProductsFromAPI();
+      await loadUsersFromAPI();
+      
+      // Load local storage
       loadUsersFromStorage();
       restoreSession();
+      await restoreSupabaseSession();
       setTimeout(() => {
         document.getElementById('page-loader').classList.add('hidden');
       }, 1800);
@@ -341,14 +452,22 @@
       const email = document.getElementById('login-email').value.trim().toLowerCase();
       const pass = document.getElementById('login-password').value;
       if (!email || !pass) { showToast('Please fill in all fields', 'error'); return; }
+
+      if (window.SupabaseWeb) {
+        try {
+          await window.SupabaseWeb.signIn(email, pass);
+          state.currentUser = await resolveProfileByEmail(email);
+          onLoginSuccess(true);
+          closeModal('login-modal');
+          return;
+        } catch (err) {
+          console.warn('Supabase login failed, fallback to app auth:', err);
+        }
+      }
+
       try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pass })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
+        const data = await APIClient.login(email, pass);
+        if (!data.ok) {
           showToast(data.error || 'Login failed', 'error');
           return;
         }
@@ -356,7 +475,7 @@
         onLoginSuccess(true);
         closeModal('login-modal');
       } catch (err) {
-        showToast('Cannot connect to auth API', 'error');
+        showToast(err.message || 'Cannot connect to auth API', 'error');
       }
     }
 
@@ -379,19 +498,28 @@
       if (!first || !last || !email || !pass) { showToast('Please fill in all required fields', 'error'); return; }
       if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
       if (pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+
+      if (window.SupabaseWeb) {
+        try {
+          await window.SupabaseWeb.signUp(email, pass);
+          try {
+            await APIClient.register(email, `${first} ${last}`, phone, pass);
+          } catch (_) {
+            // Ignore duplicate local profile errors and continue.
+          }
+          state.currentUser = await resolveProfileByEmail(email);
+          onLoginSuccess(true);
+          closeModal('register-modal');
+          showToast('Supabase account created successfully', 'success');
+          return;
+        } catch (err) {
+          console.warn('Supabase register failed, fallback to app register:', err);
+        }
+      }
+
       try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            full_name: `${first} ${last}`,
-            email,
-            phone,
-            password: pass,
-          })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
+        const data = await APIClient.register(email, `${first} ${last}`, phone, pass);
+        if (!data.ok) {
           showToast(data.error || 'Register failed', 'error');
           return;
         }
@@ -399,7 +527,7 @@
         onLoginSuccess(true);
         closeModal('register-modal');
       } catch (err) {
-        showToast('Cannot connect to auth API', 'error');
+        showToast(err.message || 'Cannot connect to auth API', 'error');
       }
     }
 
@@ -413,18 +541,42 @@
       localStorage.setItem(SESSION_USER_KEY, JSON.stringify(state.currentUser));
       if (state.currentUser.role === 'admin') {
         document.getElementById('admin-access-btn').style.display = 'block';
+        document.getElementById('shipper-access-btn').style.display = 'none';
+        document.getElementById('customer-access-btn').style.display = 'none';
+      } else if (state.currentUser.role === 'shipper') {
+        document.getElementById('admin-access-btn').style.display = 'none';
+        document.getElementById('shipper-access-btn').style.display = 'block';
+        document.getElementById('customer-access-btn').style.display = 'none';
       } else {
         document.getElementById('admin-access-btn').style.display = 'none';
+        document.getElementById('shipper-access-btn').style.display = 'none';
+        document.getElementById('customer-access-btn').style.display = 'block';
       }
       updateCartCount();
       if (showWelcomeToast) {
         showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}! 🔥`, 'success');
       }
+
+      // If user logs in from Live Server (5501), redirect admin to Flask app (5500) immediately.
+      if (showWelcomeToast && state.currentUser.role === 'admin') {
+        setTimeout(() => {
+          window.location.href = `${getAppBaseUrl()}/admin/dashboard`;
+        }, 250);
+      }
     }
 
-    function logout() {
+    async function logout() {
       state.currentUser = null;
       state.cart = [];
+
+      if (window.SupabaseWeb) {
+        try {
+          await window.SupabaseWeb.signOut();
+        } catch (err) {
+          console.warn('Supabase signOut failed:', err);
+        }
+      }
+
       localStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem(SESSION_USER_KEY);
       document.getElementById('login-btn').style.display = 'flex';
@@ -696,7 +848,23 @@
         showToast('Only admin can access dashboard', 'error');
         return;
       }
-      window.location.href = '/admin/dashboard';
+      window.location.href = `${getAppBaseUrl()}/admin/dashboard`;
+    }
+
+    function openShipperWorkspace() {
+      if (!state.currentUser || state.currentUser.role !== 'shipper') {
+        showToast('Only shipper can access workspace', 'error');
+        return;
+      }
+      window.location.href = `${getAppBaseUrl()}/shipper/workspace`;
+    }
+
+    function openCustomerPortal() {
+      if (!state.currentUser) {
+        openModal('login-modal');
+        return;
+      }
+      window.location.href = `${getAppBaseUrl()}/customer`;
     }
 
     function closeAdminDashboard() {

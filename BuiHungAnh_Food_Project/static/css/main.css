@@ -110,6 +110,22 @@
       padding: 8px;
       min-width: 180px;
       z-index: 2000;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .user-dropdown-menu .user-dropdown-link {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      width: 100%;
+      justify-content: flex-start;
+      transition: var(--transition);
+    }
+
+    .user-dropdown-menu .user-dropdown-link:hover {
+      background: rgba(232, 0, 13, 0.15);
+      border-color: rgba(232, 0, 13, 0.35);
+      color: var(--white);
     }
 
     .user-greeting-title {
@@ -799,6 +815,36 @@
       font-size: 15px;
       transition: var(--transition);
     }
+
+    .form-control.select-input,
+    select.form-control {
+          background: rgba(15, 15, 15, 0.9);
+          color: var(--white);
+          appearance: none;
+          padding-right: 40px;
+          background-image:
+            linear-gradient(45deg, transparent 50%, var(--white) 50%),
+            linear-gradient(135deg, var(--white) 50%, transparent 50%);
+          background-position: calc(100% - 20px) calc(50% + 3px), calc(100% - 15px) calc(50% + 3px);
+          background-size: 7px 7px, 7px 7px;
+          background-repeat: no-repeat;
+        }
+
+    select.form-control:focus {
+          border-color: var(--red);
+          box-shadow: 0 0 0 3px rgba(232, 0, 13, 0.25);
+        }
+
+    select.form-control option {
+          background: rgba(10, 10, 10, 0.95);
+          color: var(--white);
+        }
+
+    select.form-control option:hover,
+    select.form-control option:checked {
+          background: var(--red);
+          color: #fff;
+        }
 
     .form-control:focus {
       border-color: var(--red);
@@ -2488,6 +2534,21 @@
     .admin-table tr:hover td {
       background: rgba(255, 255, 255, 0.02);
     }
+
+        @media (forced-colors: active) {
+          body,
+          .admin-wrapper,
+          .admin-wrapper *,
+          .a-panel,
+          .a-panel *,
+          .a-table,
+          .a-table * {
+            forced-color-adjust: none;
+            background-color: #050505 !important;
+            color: #ffffff !important;
+            border-color: #ffffff !important;
+          }
+        }
 
     .status-badge {
       display: inline-flex;

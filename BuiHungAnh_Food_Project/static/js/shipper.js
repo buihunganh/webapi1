@@ -1,75 +1,15 @@
 const SHIPPER_STATE = {
     profile: {
-        name: 'Nguyen Van A',
-        zone: 'Hoan Kiem, Ha Noi',
+        name: 'Shipper',
         isOnline: true,
-        rating: 4.9,
-        avgMinutes: 24,
-        totalDeliveries: 142,
-        totalEarnings: 1580,
+        // 274C REMOVED: zone, rating, avgMinutes, totalDeliveries, totalEarnings (not in database)
     },
-    newOrders: [
-        {
-            id: '#SF-3011',
-            customer: 'Minh Tran',
-            phone: '+84 901 234 567',
-            pickup: 'ShisaFood - 123 Fire Street',
-            dropoff: '21 Hang Bong, Hoan Kiem',
-            items: ['Volcano Noodles x2', 'Fire Cola x1'],
-            value: 32.97,
-            fee: 2.2,
-            distanceKm: 3.4,
-            eta: '20 mins',
-        },
-        {
-            id: '#SF-3012',
-            customer: 'Sarah K.',
-            phone: '+84 902 345 678',
-            pickup: 'ShisaFood - 123 Fire Street',
-            dropoff: '4 Ly Thuong Kiet, Hoan Kiem',
-            items: ['BBQ Fire Pizza x1', 'Bubble Tea x2'],
-            value: 28.47,
-            fee: 2.6,
-            distanceKm: 4.1,
-            eta: '23 mins',
-        },
-    ],
-    activeOrders: [
-        {
-            id: '#SF-3009',
-            customer: 'Thu Ha',
-            phone: '+84 904 567 890',
-            pickup: 'ShisaFood - 123 Fire Street',
-            dropoff: '88 Tran Hung Dao, Hoan Kiem',
-            items: ['Dragon Ramen x1', 'Volcano Fries x1'],
-            value: 19.48,
-            fee: 1.9,
-            distanceKm: 2.8,
-            eta: '11 mins',
-            stage: 'picked',
-        },
-    ],
-    doneOrders: [
-        {
-            id: '#SF-3001',
-            customer: 'Alex Nguyen',
-            address: '12 Trang Thi, Hoan Kiem',
-            value: 22.49,
-            time: '2026-03-28 11:30',
-            rating: 5,
-            fee: 2.1,
-        },
-        {
-            id: '#SF-3004',
-            customer: 'Binh Nguyen',
-            address: '120 Doi Can, Ba Dinh',
-            value: 17.97,
-            time: '2026-03-28 13:05',
-            rating: 4,
-            fee: 2.0,
-        },
-    ],
+    newOrders: [], // Will load from API
+    activeOrders: [], // Will load from API
+    doneOrders: [], // Will load from API
 };
+
+let unsubscribeOrdersRealtime = null;
 
 function shipperToast(message, type = 'info') {
     if (typeof window.showToast === 'function') {
@@ -83,28 +23,98 @@ function money(v) {
     return `$${Number(v).toFixed(2)}`;
 }
 
+function formatOrderDisplayId(dbId) {
+    return `#SF-${String(dbId).padStart(4, '0')}`;
+}
+
+function mapApiOrder(order) {
+    return {
+        dbId: Number(order.orderid),
+        id: formatOrderDisplayId(order.orderid),
+        customer: order.customerid ? `Customer #${order.customerid}` : 'Customer',
+        phone: order.deliveryphone || 'N/A',
+        pickup: 'ShisaFood - 123 Fire Street',
+        dropoff: order.addressid ? `Address #${order.addressid}` : 'Customer address',
+        items: [order.notes || 'View order details'],
+        value: Number(order.totalamount || 0),
+        fee: Number(order.shippingfee || 0),
+        distanceKm: 3,
+        eta: '20 mins',
+        stage: 'picked',
+        rawStatus: order.orderstatus || 'pending',
+        time: order.orderdate ? new Date(order.orderdate).toLocaleString() : '-',
+    };
+}
+
+async function loadShipperOrdersFromAPI() {
+    if (typeof APIClient === 'undefined') return;
+    try {
+        const orders = await APIClient.getOrders(400);
+        if (!Array.isArray(orders) || !orders.length) return;
+
+        const mapped = orders.map(mapApiOrder);
+        SHIPPER_STATE.newOrders = mapped.filter((o) => o.rawStatus === 'pending' || o.rawStatus === 'waiting_for_shipper');
+        SHIPPER_STATE.activeOrders = mapped
+            .filter((o) => o.rawStatus === 'shipping')
+            .map((o) => ({ ...o, stage: 'picked', eta: '10 mins' }));
+        SHIPPER_STATE.doneOrders = mapped
+            .filter((o) => o.rawStatus === 'completed')
+            .map((o) => ({
+                id: o.id,
+                customer: o.customer,
+                address: o.dropoff,
+                value: o.value,
+                time: o.time,
+                rating: 5,
+                fee: o.fee,
+            }));
+    } catch (err) {
+        shipperToast(`Using local fallback data: ${err.message || err}`, 'info');
+    }
+}
+
+async function initOrdersRealtime() {
+    if (!window.SupabaseWeb) return;
+    try {
+        unsubscribeOrdersRealtime = await window.SupabaseWeb.subscribeOrders(async () => {
+            await loadShipperOrdersFromAPI();
+            renderNewOrders();
+            renderActiveOrders();
+            renderHistory();
+            renderStats();
+        });
+    } catch (err) {
+        shipperToast(`Realtime disabled: ${err.message || err}`, 'info');
+    }
+}
+
 function renderStats() {
     const completedToday = SHIPPER_STATE.doneOrders.filter((o) => o.time.startsWith('2026-03-29')).length;
     const todayEarning = SHIPPER_STATE.doneOrders
         .filter((o) => o.time.startsWith('2026-03-29'))
         .reduce((sum, o) => sum + o.fee, 0);
+    
+    // Calculate lifetime stats from doneOrders
+    const totalDeliveries = SHIPPER_STATE.doneOrders.length;
+    const avgRatingValue = SHIPPER_STATE.doneOrders.length > 0
+        ? (SHIPPER_STATE.doneOrders.reduce((sum, o) => sum + (o.rating || 4), 0) / SHIPPER_STATE.doneOrders.length)
+        : 4.5;
 
     const nameEl = document.getElementById('s-name');
     const earningEl = document.getElementById('today-earnings');
     const completeEl = document.getElementById('completed-today');
-    const totalDeliveries = document.getElementById('total-deliveries');
-    const avgRating = document.getElementById('avg-rating');
-    const avgTime = document.getElementById('avg-time');
-    const totalEarnings = document.getElementById('total-earnings');
+    const totalDeliveriesEl = document.getElementById('total-deliveries');
+    const avgRatingEl = document.getElementById('avg-rating');
+    const totalEarningsEl = document.getElementById('total-earnings');
     const badgeNew = document.getElementById('badge-new');
 
     if (nameEl) nameEl.textContent = SHIPPER_STATE.profile.name.toUpperCase();
     if (earningEl) earningEl.textContent = money(todayEarning);
     if (completeEl) completeEl.textContent = `${completedToday} completed orders`;
-    if (totalDeliveries) totalDeliveries.textContent = SHIPPER_STATE.profile.totalDeliveries;
-    if (avgRating) avgRating.textContent = SHIPPER_STATE.profile.rating.toFixed(1);
-    if (avgTime) avgTime.textContent = SHIPPER_STATE.profile.avgMinutes;
-    if (totalEarnings) totalEarnings.textContent = money(SHIPPER_STATE.profile.totalEarnings);
+    if (totalDeliveriesEl) totalDeliveriesEl.textContent = totalDeliveries;
+    if (avgRatingEl) avgRatingEl.textContent = avgRatingValue.toFixed(1);
+    // ✗ REMOVED: avgMinutes (not in database)
+    if (totalEarningsEl) totalEarningsEl.textContent = money(SHIPPER_STATE.doneOrders.reduce((sum, o) => sum + (o.fee || 0), 0));
     if (badgeNew) badgeNew.textContent = SHIPPER_STATE.newOrders.length;
 }
 
@@ -211,7 +221,7 @@ function toggleStatus() {
     shipperToast(checked ? 'You are now online' : 'You are now offline', 'info');
 }
 
-function acceptOrder(orderId) {
+async function acceptOrder(orderId) {
     if (!SHIPPER_STATE.profile.isOnline) {
         shipperToast('You are offline and cannot accept orders', 'error');
         return;
@@ -219,6 +229,13 @@ function acceptOrder(orderId) {
     const index = SHIPPER_STATE.newOrders.findIndex((o) => o.id === orderId);
     if (index < 0) return;
     const order = SHIPPER_STATE.newOrders.splice(index, 1)[0];
+    try {
+        await APIClient.updateOrderStatus(order.dbId, 'shipping');
+    } catch (err) {
+        SHIPPER_STATE.newOrders.splice(index, 0, order);
+        shipperToast(`Accept failed: ${err.message || err}`, 'error');
+        return;
+    }
     order.stage = 'accepted';
     SHIPPER_STATE.activeOrders.unshift(order);
     renderNewOrders();
@@ -242,12 +259,18 @@ function pickupOrder(orderId) {
     shipperToast(`Picked up order ${orderId}`, 'success');
 }
 
-function completeOrder(orderId) {
+async function completeOrder(orderId) {
     const index = SHIPPER_STATE.activeOrders.findIndex((o) => o.id === orderId);
     if (index < 0) return;
     const order = SHIPPER_STATE.activeOrders.splice(index, 1)[0];
-    SHIPPER_STATE.profile.totalDeliveries += 1;
-    SHIPPER_STATE.profile.totalEarnings += order.fee;
+    try {
+        await APIClient.updateOrderStatus(order.dbId, 'completed');
+    } catch (err) {
+        SHIPPER_STATE.activeOrders.splice(index, 0, order);
+        shipperToast(`Complete failed: ${err.message || err}`, 'error');
+        return;
+    }
+    // ✗ REMOVED: totalDeliveries and totalEarnings increment (calculated from doneOrders now)
     SHIPPER_STATE.doneOrders.push({
         id: order.id,
         customer: order.customer,
@@ -289,11 +312,19 @@ function updateClock() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadShipperOrdersFromAPI();
     renderNewOrders();
     renderActiveOrders();
     renderHistory();
     renderStats();
     setInterval(updateClock, 1000);
     updateClock();
+    await initOrdersRealtime();
+});
+
+window.addEventListener('beforeunload', () => {
+    if (typeof unsubscribeOrdersRealtime === 'function') {
+        unsubscribeOrdersRealtime();
+    }
 });

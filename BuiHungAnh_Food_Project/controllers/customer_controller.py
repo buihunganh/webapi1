@@ -1,75 +1,60 @@
-from datetime import date, datetime
-from decimal import Decimal
+import os
 
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
-from models.database import get_connection
-from models.orders import update_order_status
-from models.users import get_user_by_email, hash_password, insert_user, verify_password
+from models.supabase_client import get_supabase
+from models.products import get_all_products, update_product_image_url
+from models.orders import get_all_orders, update_order_status
+from models.users import get_all_users, get_user_by_email, hash_password, insert_user, verify_password
 
 customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/')
-@customer_bp.route('/customer')
-def index():
-    """Xử lý API hiển thị menu, nhận giỏ hàng"""
-    return render_template('customer/customer.html')
-
-
 @customer_bp.route('/index.html')
 def homepage_file():
-    """Serve root index.html for direct browser access."""
+    """Serve root landing page first."""
     return send_from_directory(current_app.root_path, 'index.html')
 
 
-def _serialize_value(value):
-    if isinstance(value, Decimal):
-        return float(value)
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    return value
-
-
-def _query_rows(sql, params=()):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(sql, params)
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
-    conn.close()
-
-    data = []
-    for row in rows:
-        item = {}
-        for idx, col_name in enumerate(columns):
-            item[col_name] = _serialize_value(row[idx])
-        data.append(item)
-    return data
+@customer_bp.route('/customer')
+def customer_portal():
+    """Customer portal page."""
+    return render_template('customer/customer.html')
 
 
 @customer_bp.route('/api/health', methods=['GET'])
 def api_health():
     """Health check app + database."""
     try:
-        data = _query_rows("SELECT DB_NAME() AS DatabaseName, @@SERVERNAME AS ServerName")
-        return jsonify({"ok": True, "database": data[0]}), 200
+        sb = get_supabase()
+        ping = sb.table('products').select('productid').limit(1).execute()
+        return jsonify({"ok": True, "database": "supabase", "rows_checked": len(ping.data or [])}), 200
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/config', methods=['GET'])
+def api_config():
+    """Expose non-secret frontend config values."""
+    supabase_url = os.getenv('SUPABASE_URL')
+    publishable_key = os.getenv('SUPABASE_PUBLISHABLE_KEY')
+
+    if not supabase_url or not publishable_key:
+        return jsonify({"ok": False, "error": "Supabase config is missing"}), 500
+
+    return jsonify({
+        "ok": True,
+        "supabase_url": supabase_url,
+        "supabase_publishable_key": publishable_key,
+    }), 200
 
 
 @customer_bp.route('/api/users', methods=['GET'])
 def api_users():
     """List users for quick API checks."""
     limit = request.args.get('limit', default=20, type=int)
-    limit = max(1, min(limit, 200))
-
-    sql = """
-        SELECT TOP (?)
-            UserID, FullName, Email, Phone, RoleID, IsActive, CreatedAt
-        FROM Users
-        ORDER BY UserID DESC
-    """
-    data = _query_rows(sql, (limit,))
+    limit = max(1, min(limit, 500))
+    data = get_all_users(limit)
     return jsonify({"count": len(data), "items": data}), 200
 
 
@@ -77,33 +62,37 @@ def api_users():
 def api_products():
     """List products for quick API checks."""
     limit = request.args.get('limit', default=20, type=int)
-    limit = max(1, min(limit, 200))
+    limit = max(1, min(limit, 500))
 
-    sql = """
-        SELECT TOP (?)
-            ProductID, CategoryID, ProductName, Price, StockQuantity, IsActive, CreatedAt
-        FROM Products
-        ORDER BY ProductID DESC
-    """
-    data = _query_rows(sql, (limit,))
+    data = get_all_products()[:limit]
     return jsonify({"count": len(data), "items": data}), 200
+
+
+@customer_bp.route('/api/products/<int:product_id>/image', methods=['POST'])
+def api_update_product_image(product_id):
+    """Persist uploaded product image URL."""
+    payload = request.get_json(silent=True) or {}
+    image_url = (payload.get('image_url') or '').strip()
+
+    if not image_url:
+        return jsonify({"ok": False, "error": "image_url is required"}), 400
+
+    try:
+        ok = update_product_image_url(product_id, image_url)
+        if not ok:
+            return jsonify({"ok": False, "error": "Product not found or update failed"}), 404
+        return jsonify({"ok": True, "product_id": product_id, "image_url": image_url}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 @customer_bp.route('/api/orders', methods=['GET'])
 def api_orders():
     """List orders for quick API checks."""
     limit = request.args.get('limit', default=20, type=int)
-    limit = max(1, min(limit, 200))
+    limit = max(1, min(limit, 500))
 
-    sql = """
-        SELECT TOP (?)
-            OrderID, CustomerID, ShipperID, AddressID, PromotionID,
-            DeliveryPhone, SubTotal, ShippingFee, Discount, TotalAmount,
-            OrderStatus, OrderDate, DeliveredDate, Notes
-        FROM Orders
-        ORDER BY OrderID DESC
-    """
-    data = _query_rows(sql, (limit,))
+    data = get_all_orders()[:limit]
     return jsonify({"count": len(data), "items": data}), 200
 
 
@@ -144,27 +133,28 @@ def api_auth_login():
         if not user:
             return jsonify({"ok": False, "error": "Account not found"}), 404
 
-        if not bool(user.IsActive):
+        if not bool(user.get('isactive')):
             return jsonify({"ok": False, "error": "Account is inactive"}), 403
 
-        if not verify_password(password, user.PasswordHash):
+        if not verify_password(password, user.get('passwordhash')):
             return jsonify({"ok": False, "error": "Wrong password"}), 401
 
         role_name = 'customer'
-        if user.RoleID == 1:
+        role_id = int(user.get('roleid') or 3)
+        if role_id == 1:
             role_name = 'admin'
-        elif user.RoleID == 2:
+        elif role_id == 2:
             role_name = 'shipper'
 
         return jsonify({
             "ok": True,
             "user": {
-                "id": user.UserID,
-                "name": user.FullName,
-                "email": user.Email,
-                "phone": user.Phone,
+                "id": user.get('userid'),
+                "name": user.get('fullname'),
+                "email": user.get('email'),
+                "phone": user.get('phone'),
                 "role": role_name,
-                "role_id": user.RoleID,
+                "role_id": role_id,
             }
         }), 200
     except Exception as exc:
@@ -204,5 +194,39 @@ def api_auth_register():
                 "role_id": 3,
             }
         }), 201
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/auth/profile', methods=['GET'])
+def api_auth_profile():
+    """Get app profile by email for role mapping after Supabase auth."""
+    email = (request.args.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({"ok": False, "error": "Email is required"}), 400
+
+    try:
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({"ok": False, "error": "Profile not found"}), 404
+
+        role_id = int(user.get('roleid') or 3)
+        role_name = 'customer'
+        if role_id == 1:
+            role_name = 'admin'
+        elif role_id == 2:
+            role_name = 'shipper'
+
+        return jsonify({
+            "ok": True,
+            "user": {
+                "id": user.get('userid'),
+                "name": user.get('fullname'),
+                "email": user.get('email'),
+                "phone": user.get('phone'),
+                "role": role_name,
+                "role_id": role_id,
+            }
+        }), 200
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
