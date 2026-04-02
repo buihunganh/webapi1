@@ -130,6 +130,30 @@ class APIClient {
   }
 
   /**
+   * Create a new order (storefront checkout)
+   * POST /api/orders
+   */
+  static async createOrder(payload) {
+    try {
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      });
+      const text = await res.text();
+      if (!text) throw new Error('Empty response from server');
+      const data = JSON.parse(text);
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || 'Failed to create order');
+      }
+      return data.order || data;
+    } catch (err) {
+      console.error('Create order error:', err);
+      throw err;
+    }
+  }
+
+  /**
    * Admin-only list users by role.
    * GET /api/admin/users?role=customer&limit=200
    */

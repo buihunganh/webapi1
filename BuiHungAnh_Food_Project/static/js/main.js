@@ -2,7 +2,6 @@
     let state = {
       currentUser: null,
       cart: [],
-      orders: [],
       selectedPayment: 'cod',
       selectedReviewStar: 5,
       currentProduct: null,
@@ -14,7 +13,25 @@
       priceMax: 9999,
       searchQuery: '',
       promoApplied: null,
+      shippingInfo: {
+        firstName: '',
+        lastName: '',
+        phone: '',
+        address: '',
+        city: '',
+        notes: '',
+      },
     };
+
+    let isPlacingOrder = false;
+
+    function formatOrderDisplayId(orderId) {
+      const numeric = parseInt(orderId, 10);
+      if (Number.isNaN(numeric)) {
+        return orderId || '#SF-0001';
+      }
+      return `#SF-${String(numeric).padStart(4, '0')}`;
+    }
 
     function getAppBaseUrl() {
       const { protocol, hostname, port, host } = window.location;
@@ -181,6 +198,47 @@
       }
     }
 
+    async function loadOrdersFromAPI() {
+      try {
+        const apiOrders = await APIClient.getOrders(200);
+        if (Array.isArray(apiOrders) && apiOrders.length) {
+          ORDERS = apiOrders.map(mapApiOrderToRow);
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load orders from API, using local data:', err);
+      }
+    }
+
+    function mapApiOrderToRow(row) {
+      if (!row) {
+        return {
+          id: formatOrderDisplayId(Date.now()),
+          customer: 'Customer',
+          items: '—',
+          total: 0,
+          status: 'pending',
+          date: new Date().toLocaleString(),
+        };
+      }
+      const customerInfo = row.customer || {};
+      const customerLabel = customerInfo.fullname || row.customername || customerInfo.name || `Customer #${row.customerid || '—'}`;
+      const status = (row.orderstatus || row.status || 'pending').toLowerCase();
+      const itemsText = row.items_summary || row.notes || 'See details';
+      let totalVal = 0;
+      if (typeof row.totalamount !== 'undefined') totalVal = Number(row.totalamount);
+      else if (typeof row.subtotal !== 'undefined') totalVal = Number(row.subtotal);
+      else if (typeof row.total !== 'undefined') totalVal = Number(row.total);
+      const orderDate = row.orderdate ? new Date(row.orderdate).toLocaleString() : new Date().toLocaleString();
+      return {
+        id: row.display_id || formatOrderDisplayId(row.orderid || row.id || Date.now()),
+        customer: customerLabel,
+        items: itemsText,
+        total: Number.isFinite(totalVal) ? totalVal : 0,
+        status,
+        date: orderDate,
+      };
+    }
+
     /**
      * Check API Server Health
      */
@@ -212,6 +270,7 @@
       // Load data from API
       await loadProductsFromAPI();
       await loadUsersFromAPI();
+      await loadOrdersFromAPI();
       
       // Load local storage
       loadUsersFromStorage();
@@ -223,9 +282,11 @@
       renderCategories();
       renderProducts();
       renderBestSellers();
+      updateAdminStats();
       setupScrollEffects();
       setupFadeAnimations();
       document.getElementById('admin-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      setTimeout(() => restoreMenuVisibility(true), 300);
     });
 
     // ========== SCROLL EFFECTS ==========
@@ -374,9 +435,45 @@
     }
 
     function filterProducts() {
-      state.searchQuery = document.getElementById('search-input').value.toLowerCase();
+      const searchInput = document.getElementById('search-input');
+      if (!searchInput) return;
+      const rawValue = searchInput.value.trim();
+      const looksAutofilled = /@/.test(rawValue) || rawValue.length > 16;
+      if (looksAutofilled) {
+        if (rawValue !== lastAutoClearedSearch) {
+          lastAutoClearedSearch = rawValue;
+          searchInput.value = '';
+        }
+        if (state.searchQuery) {
+          state.searchQuery = '';
+          state.currentPage = 1;
+          renderProducts();
+        }
+        return;
+      }
+      state.searchQuery = rawValue.toLowerCase();
       state.currentPage = 1;
       renderProducts();
+    }
+
+    let lastAutoClearedSearch = '';
+
+    function restoreMenuVisibility(force = false) {
+      const searchInput = document.getElementById('search-input');
+      if (!searchInput) return;
+      const currentValue = searchInput.value.trim();
+      const looksAutofilled = /@/.test(currentValue) || currentValue.length > 16;
+      if (!force && (!currentValue || !looksAutofilled || currentValue === lastAutoClearedSearch)) {
+        return;
+      }
+      if (!currentValue && !state.searchQuery) return;
+      searchInput.value = '';
+      lastAutoClearedSearch = currentValue;
+      if (state.searchQuery) {
+        state.searchQuery = '';
+        state.currentPage = 1;
+        renderProducts();
+      }
     }
 
     // ========== PRODUCT DETAIL ==========
@@ -553,14 +650,24 @@
         document.getElementById('customer-access-btn').style.display = 'block';
       }
       updateCartCount();
+      setTimeout(() => restoreMenuVisibility(true), 250);
+      setTimeout(() => restoreMenuVisibility(true), 1000);
       if (showWelcomeToast) {
         showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}! 🔥`, 'success');
       }
 
-      // If user logs in from Live Server (5501), redirect admin to Flask app (5500) immediately.
-      if (showWelcomeToast && state.currentUser.role === 'admin') {
+      if (showWelcomeToast) {
+        let target = null;
+        if (state.currentUser.role === 'admin') {
+          target = '/admin/dashboard';
+        } else if (state.currentUser.role === 'shipper') {
+          target = '/shipper/workspace';
+        } else {
+          target = '/customer';
+        }
+
         setTimeout(() => {
-          window.location.href = `${getAppBaseUrl()}/admin/dashboard`;
+          window.location.href = `${getAppBaseUrl()}${target}`;
         }, 250);
       }
     }
@@ -589,8 +696,13 @@
     }
 
     function toggleUserDropdown() {
-      const d = document.getElementById('user-dropdown');
-      d.style.display = d.style.display === 'none' ? 'block' : 'none';
+      const dropdown = document.getElementById('user-dropdown');
+      if (!dropdown) return;
+      const isHidden = dropdown.style.display === 'none'
+        || (!dropdown.style.display && window.getComputedStyle(dropdown).display === 'none');
+      const nextDisplay = isHidden ? 'block' : 'none';
+      dropdown.style.display = nextDisplay;
+      // No automatic menu reset here to avoid disruptive rerender.
     }
     document.addEventListener('click', e => {
       const menu = document.getElementById('user-menu');
@@ -676,24 +788,45 @@
       updateCartTotals();
     }
 
-    function updateCartTotals() {
-      const sub = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-      let delivery = 2.99;
+    function computeCartTotals() {
+      const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      let shippingFee = 2.99;
       let discount = 0;
+      let promoCode = null;
+
       if (state.promoApplied) {
-        const p = state.promoApplied;
-        if (p.type === 'percent') discount = sub * p.value / 100;
-        else if (p.type === 'flat') discount = p.value;
-        else if (p.type === 'delivery') { delivery = 0; discount = 2.99; }
-        document.getElementById('cart-discount-row').style.display = 'flex';
-        document.getElementById('cart-discount').textContent = `-$${discount.toFixed(2)}`;
-      } else {
-        document.getElementById('cart-discount-row').style.display = 'none';
+        const promo = state.promoApplied;
+        promoCode = promo.code || null;
+        if (promo.type === 'percent') discount = subtotal * promo.value / 100;
+        else if (promo.type === 'flat') discount = promo.value;
+        else if (promo.type === 'delivery') {
+          discount = shippingFee;
+          shippingFee = 0;
+        }
       }
-      const total = Math.max(0, sub + delivery - discount);
-      document.getElementById('cart-subtotal').textContent = `$${sub.toFixed(2)}`;
-      document.getElementById('cart-delivery').textContent = `$${delivery.toFixed(2)}`;
-      document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
+
+      discount = Math.min(discount, subtotal + shippingFee);
+      const total = Math.max(0, subtotal + shippingFee - discount);
+      return { subtotal, shippingFee, discount, total, promoCode };
+    }
+
+    function updateCartTotals() {
+      const totals = computeCartTotals();
+      const discountRow = document.getElementById('cart-discount-row');
+      const discountValue = document.getElementById('cart-discount');
+
+      if (discountRow && discountValue) {
+        if (totals.discount > 0) {
+          discountRow.style.display = 'flex';
+          discountValue.textContent = `-$${totals.discount.toFixed(2)}`;
+        } else {
+          discountRow.style.display = 'none';
+        }
+      }
+
+      document.getElementById('cart-subtotal').textContent = `$${totals.subtotal.toFixed(2)}`;
+      document.getElementById('cart-delivery').textContent = `$${totals.shippingFee.toFixed(2)}`;
+      document.getElementById('cart-total').textContent = `$${totals.total.toFixed(2)}`;
     }
 
     function applyPromo() {
@@ -703,7 +836,7 @@
       if (!promo) { showToast('Invalid promo code', 'error'); return; }
       const sub = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
       if (sub < promo.min) { showToast(`Minimum order $${promo.min} required`, 'error'); return; }
-      state.promoApplied = promo;
+      state.promoApplied = { ...promo, code };
       updateCartTotals();
       showToast(`Promo applied! ${promo.desc} 🎉`, 'success');
     }
@@ -724,22 +857,36 @@
     function openCheckout() {
       if (!state.cart.length) { showToast('Your cart is empty!', 'error'); return; }
       closeCart();
-      const sub = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
-      document.getElementById('co-subtotal').textContent = `$${sub.toFixed(2)}`;
-      document.getElementById('co-total').textContent = `$${(sub + 2.99).toFixed(2)}`;
+      const totals = computeCartTotals();
+      document.getElementById('co-subtotal').textContent = `$${totals.subtotal.toFixed(2)}`;
+      const deliveryLabel = document.querySelector('#checkout-step2 .checkout-summary-box .cart-total-row:nth-child(2) span:last-child');
+      if (deliveryLabel) deliveryLabel.textContent = `$${totals.shippingFee.toFixed(2)}`;
+      document.getElementById('co-total').textContent = `$${totals.total.toFixed(2)}`;
       state.selectedPayment = 'cod';
-      goCheckoutStep(1);
+      selectPayment('cod');
+      setCheckoutStep(1);
       openModal('checkout-modal');
     }
 
-    function goCheckoutStep(n) {
+    function setCheckoutStep(step) {
       [1, 2, 3].forEach(i => {
-        document.getElementById(`checkout-step${i}`).style.display = i === n ? 'block' : 'none';
-        const ind = document.getElementById(`step${i}-indicator`);
-        ind.classList.toggle('active', i === n);
-        ind.classList.toggle('done', i < n);
+        const panel = document.getElementById(`checkout-step${i}`);
+        const indicator = document.getElementById(`step${i}-indicator`);
+        if (panel) panel.style.display = i === step ? 'block' : 'none';
+        if (indicator) {
+          indicator.classList.toggle('active', i === step);
+          indicator.classList.toggle('done', i < step);
+        }
       });
-      if (n === 3) placeOrder();
+    }
+
+    async function goCheckoutStep(n) {
+      if (n === 2 && !saveShippingInfo()) return;
+      if (n === 3) {
+        const success = await placeOrder();
+        if (!success) return;
+      }
+      setCheckoutStep(n);
     }
 
     function selectPayment(method) {
@@ -750,25 +897,117 @@
       document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
     }
 
-    function placeOrder() {
-      const orderId = '#SF' + (1000 + ORDERS.length + 1);
-      const order = {
-        id: orderId,
-        customer: state.currentUser.name,
-        items: state.cart.map(i => `${i.name} x${i.qty}`).join(', '),
-        total: parseFloat(document.getElementById('co-total').textContent.replace('$', '')),
-        status: 'pending',
-        date: new Date().toISOString().split('T')[0]
+    function saveShippingInfo() {
+      const first = document.getElementById('ship-first').value.trim();
+      const last = document.getElementById('ship-last').value.trim();
+      const phone = document.getElementById('ship-phone').value.trim();
+      const address = document.getElementById('ship-address').value.trim();
+      const city = document.getElementById('ship-city').value.trim();
+      const notes = document.getElementById('ship-notes').value.trim();
+
+      if (!first || !last || !phone || !address) {
+        showToast('Please complete shipping information', 'error');
+        return false;
+      }
+
+      state.shippingInfo = { firstName: first, lastName: last, phone, address, city, notes };
+      return true;
+    }
+
+    function resetCheckoutForm() {
+      ['ship-first', 'ship-last', 'ship-phone', 'ship-address', 'ship-city', 'ship-notes'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      state.shippingInfo = { firstName: '', lastName: '', phone: '', address: '', city: '', notes: '' };
+      state.selectedPayment = 'cod';
+      selectPayment('cod');
+    }
+
+    async function placeOrder() {
+      if (isPlacingOrder) return false;
+      if (!state.currentUser || !state.currentUser.id) {
+        showToast('Please log in before placing an order', 'error');
+        return false;
+      }
+      if (!state.cart.length) {
+        showToast('Your cart is empty!', 'error');
+        return false;
+      }
+
+      if (!state.shippingInfo.firstName && !saveShippingInfo()) return false;
+      const shipping = state.shippingInfo;
+      if (!shipping.firstName || !shipping.lastName || !shipping.phone || !shipping.address) {
+        showToast('Please complete shipping information', 'error');
+        return false;
+      }
+
+      const lineItems = state.cart
+        .map(item => ({ productId: Number(item.id), quantity: item.qty }))
+        .filter(item => Number.isInteger(item.productId) && item.productId > 0);
+      if (!lineItems.length) {
+        showToast('Some items are not linked to the menu yet. Please re-add them.', 'error');
+        return false;
+      }
+
+      const totals = computeCartTotals();
+      const payload = {
+        customer_id: state.currentUser.id,
+        customer_name: `${shipping.firstName} ${shipping.lastName}`.trim(),
+        items: lineItems.map(item => ({ product_id: item.productId, quantity: item.quantity })),
+        delivery_phone: shipping.phone,
+        delivery_address: shipping.address,
+        city: shipping.city,
+        notes: shipping.notes,
+        promotion_code: totals.promoCode,
+        shipping_fee: totals.shippingFee,
+        payment_method: state.selectedPayment,
       };
-      ORDERS.push(order);
-      if (state.currentUser.orders) state.currentUser.orders.push(order);
-      document.getElementById('order-id-display').textContent = orderId;
-      state.cart = [];
-      state.promoApplied = null;
-      updateCartCount();
-      renderCartItems();
-      updateAdminStats();
-      showToast('Order placed successfully! 🎉', 'success');
+
+      const placeBtn = document.querySelector('.checkout-place-btn');
+      isPlacingOrder = true;
+      if (placeBtn) {
+        placeBtn.disabled = true;
+        placeBtn.textContent = 'PROCESSING...';
+      }
+
+      try {
+        const order = await APIClient.createOrder(payload);
+        const displayId = order.display_id || formatOrderDisplayId(order.order_id);
+        document.getElementById('order-id-display').textContent = displayId;
+        const adminOrderRow = mapApiOrderToRow({
+          ...order,
+          orderid: order.order_id,
+          orderstatus: order.status,
+          totalamount: order.total_amount,
+          orderdate: order.order_date,
+          items_summary: order.items_summary,
+          customername: order.customer_name || state.currentUser.name,
+          customerid: order.customer_id || state.currentUser.id,
+        });
+        ORDERS.push(adminOrderRow);
+        if (!Array.isArray(state.currentUser.orders)) state.currentUser.orders = [];
+        state.currentUser.orders.push(adminOrderRow);
+        state.cart = [];
+        state.promoApplied = null;
+        updateCartCount();
+        renderCartItems();
+        updateAdminStats();
+        resetCheckoutForm();
+        renderOrdersModal();
+        showToast('Order placed successfully! 🎉', 'success');
+        return true;
+      } catch (err) {
+        console.error('Place order error:', err);
+        showToast(err.message || 'Failed to place order', 'error');
+        return false;
+      } finally {
+        isPlacingOrder = false;
+        if (placeBtn) {
+          placeBtn.disabled = false;
+          placeBtn.textContent = 'PLACE ORDER →';
+        }
+      }
     }
 
     // ========== ORDERS MODAL ==========
@@ -992,11 +1231,6 @@
         </div>
       </td>
     </tr>`).join('');
-    }
-
-    function renderAdminTables() {
-      renderAdminProducts();
-      renderAdminRecentOrders();
     }
 
     function filterAdminProducts(q) { renderAdminProducts(q.toLowerCase()); }

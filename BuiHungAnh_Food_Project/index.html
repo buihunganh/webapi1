@@ -45,18 +45,15 @@
         <a class="nav-link" href="#promotions" data-nav>Promotions</a>
       </div>
       <div class="nav-actions">
-        <button class="nav-icon-btn" id="search-toggle" title="Search" aria-label="Search">🔍</button>
-        <button class="nav-icon-btn is-hidden" id="cart-toggle" title="Cart" aria-label="Cart">
+        <button class="nav-icon-btn is-hidden" id="cart-toggle" title="Cart" aria-label="Cart" type="button">
           🛒
           <span class="cart-count" id="cart-count">0</span>
         </button>
-        <button class="btn btn-primary" id="login-btn" onclick="openModal('login-modal')">Login</button>
+        <button class="btn btn-primary" id="login-btn" onclick="openModal('login-modal')" type="button">Login</button>
         <div id="user-menu" class="user-menu-wrap is-hidden">
-          <button class="nav-icon-btn" id="user-btn" onclick="toggleUserDropdown()">👤</button>
+          <button class="nav-icon-btn" id="user-btn" onclick="toggleUserDropdown()" type="button">👤</button>
           <div id="user-dropdown" class="user-dropdown-menu is-hidden">
             <div class="user-greeting-title" id="user-greeting">Hello, User</div>
-            <button class="mobile-nav-link user-dropdown-link" onclick="openModal('orders-modal')">📦
-              My Orders</button>
             <button class="mobile-nav-link user-dropdown-link is-hidden" id="customer-access-btn"
               onclick="openCustomerPortal()">👤 Customer Portal</button>
             <button class="mobile-nav-link user-dropdown-link is-hidden" id="shipper-access-btn"
@@ -67,7 +64,7 @@
               onclick="logout()">🚪 Logout</button>
           </div>
         </div>
-        <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
+        <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu" type="button">☰</button>
       </div>
     </div>
   </div>
@@ -204,7 +201,7 @@
       </div>
       <div class="search-bar">
         <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Search dishes..." oninput="filterProducts()">
+        <input type="text" id="search-input" placeholder="Search dishes..." oninput="filterProducts()" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
     </div>
     <div class="products-filter fade-in" id="product-filters">

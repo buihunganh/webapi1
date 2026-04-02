@@ -32,7 +32,8 @@ def internal_error(e):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    return jsonify({"ok": False, "error": str(e)}), 500
+    app.logger.exception('Unhandled exception', exc_info=e)
+    return jsonify({"ok": False, "error": "Internal server error"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5500)

@@ -3,201 +3,384 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Portal - ShisaFood</title>
+  <title>ShisaFood | Customer Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css">
   <style>
-    /* ── CUSTOMER PAGE EXTRAS ── */
-    .cust-hero {
-      min-height: 60vh;
+    .customer-shell {
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0, rgba(232,0,13,0.18), transparent 55%), var(--black);
+    }
+
+    .customer-hero {
+      padding-top: calc(var(--nav-h) + 60px);
+      padding-bottom: 40px;
+    }
+
+    .hero-card {
+      background: linear-gradient(145deg, rgba(22,4,6,0.95), rgba(5,5,5,0.92));
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 32px;
       display: flex;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-      padding-top: var(--nav-h);
-    }
-
-    .cust-hero-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 70% 60% at 60% 40%, rgba(232,0,13,0.2) 0%, transparent 60%),
-                  linear-gradient(135deg, #0A0A0A 0%, #1A0305 60%, #0A0A0A 100%);
-    }
-
-    .cust-hero-inner {
-      position: relative; z-index: 1;
-      padding: 60px 0 40px;
-    }
-
-    /* ── PROFILE CARD ── */
-    .profile-card {
-      background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 28px;
-      display: flex;
-      align-items: center;
       gap: 24px;
-      margin-bottom: 32px;
+      align-items: center;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.6);
     }
 
-    .profile-avatar {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--red), var(--maroon));
+    .hero-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #ff512f, #dd2476);
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 42px;
       font-family: var(--font-display);
-      font-size: 36px;
-      flex-shrink: 0;
-      border: 3px solid rgba(232,0,13,0.3);
-    }
-
-    .profile-name { font-family: var(--font-display); font-size: 28px; letter-spacing: 2px; }
-    .profile-email { font-size: 14px; color: var(--gray-text); margin-top: 2px; }
-    .profile-stats { display: flex; gap: 24px; margin-top: 12px; }
-    .profile-stat-num { font-family: var(--font-display); font-size: 22px; color: var(--red-light); }
-    .profile-stat-label { font-family: var(--font-cond); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-text); }
-
-    /* ── TAB NAV ── */
-    .cust-tabs {
-      display: flex;
-      gap: 4px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 10px;
-      padding: 4px;
-      margin-bottom: 28px;
-      border: 1px solid rgba(255,255,255,0.06);
-      width: fit-content;
-    }
-
-    .cust-tab {
-      font-family: var(--font-cond);
-      font-size: 14px;
       font-weight: 700;
+      color: var(--white);
+      border: 3px solid rgba(255,255,255,0.08);
+    }
+
+    .hero-meta {
+      flex: 1;
+    }
+
+    .hero-name {
+      font-family: var(--font-display);
+      font-size: 32px;
+      letter-spacing: 3px;
+    }
+
+    .hero-email {
+      font-size: 15px;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
+
+    .hero-subline {
+      margin-top: 26px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.75);
+      max-width: 520px;
+    }
+
+    .tier-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-cond);
+      font-size: 12px;
       letter-spacing: 2px;
       text-transform: uppercase;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      color: rgba(255,255,255,0.5);
-      transition: var(--transition);
-      background: none;
-      border: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(255,214,0,0.12);
+      color: #ffd600;
     }
 
-    .cust-tab.active { background: var(--red); color: var(--white); }
-    .cust-tab:hover:not(.active) { color: var(--white); background: rgba(255,255,255,0.06); }
-
-    /* ── PANEL ── */
-    .c-panel { display: none; }
-    .c-panel.active { display: block; }
-
-    /* ── ORDER CARD ── */
-    .order-card {
-      background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
-      padding: 20px 24px;
-      margin-bottom: 16px;
-      transition: var(--transition);
-    }
-    .order-card:hover { border-color: rgba(232,0,13,0.3); }
-    .order-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
-    .order-id { font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; color: var(--red-light); }
-    .order-items { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 10px; line-height: 1.5; }
-    .order-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-    .order-total { font-family: var(--font-cond); font-size: 16px; font-weight: 700; color: var(--white); }
-    .order-date { font-size: 12px; color: var(--gray-text); }
-
-    /* ── STATUS BADGE ── */
-    .sbadge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px; font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
-    .sbadge-success { background: rgba(34,197,94,0.15); color: #4ADE80; }
-    .sbadge-warning { background: rgba(255,184,0,0.15); color: var(--gold); }
-    .sbadge-danger { background: rgba(232,0,13,0.15); color: var(--red-light); }
-    .sbadge-info { background: rgba(99,179,237,0.15); color: #63B3ED; }
-
-    /* ── ADDRESS CARD ── */
-    .addr-card {
-      background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
-      padding: 20px 24px;
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 16px;
-      transition: var(--transition);
-    }
-    .addr-card:hover { border-color: rgba(232,0,13,0.3); }
-    .addr-icon { font-size: 28px; flex-shrink: 0; }
-    .addr-name { font-family: var(--font-cond); font-size: 15px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
-    .addr-text { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; }
-    .addr-default { display: inline-block; background: rgba(232,0,13,0.12); color: var(--red-light); font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; margin-top: 6px; }
-
-    /* ── WISHLIST ── */
-    .wishlist-grid {
+    .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .summary-card {
+      background: rgba(255,255,255,0.02);
+      border-radius: 16px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.35);
+    }
+
+    .menu-preview {
+      position: relative;
+      margin-top: -20px;
+      padding-bottom: 60px;
+    }
+
+    .menu-card-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .menu-card {
+      background: linear-gradient(135deg, rgba(10,10,10,0.96), rgba(4,4,4,0.9));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .menu-card h5 {
+      margin: 0;
+      font-size: 16px;
+      font-family: var(--font-cond);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .menu-card p { margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; }
+
+    .menu-card strong { font-family: var(--font-display); font-size: 22px; }
+
+    .summary-label {
+      font-size: 12px;
+      font-family: var(--font-cond);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-text);
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-family: var(--font-display);
+      margin-top: 6px;
+    }
+
+    .delivery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .delivery-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .delivery-toggle-btn.active {
+      background: rgba(232,0,13,0.18);
+      border-color: rgba(232,0,13,0.5);
+      color: #fff;
+    }
+
+    .delivery-section {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .delivery-section.is-hidden {
+      display: none;
+    }
+
+    .delivery-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .delivery-section-title {
+      font-family: var(--font-cond);
+      font-size: 15px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .delivery-section-subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+    }
+
+    .delivery-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .delivery-card {
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .delivery-card.live-order {
+      border-color: rgba(125,211,252,0.45);
+      box-shadow: 0 0 22px rgba(56,189,248,0.18);
+    }
+
+    .delivery-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .delivery-card-id {
+      font-family: var(--font-cond);
+      font-size: 15px;
+      letter-spacing: 1.5px;
+    }
+
+    .delivery-card-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.68);
+    }
+
+    .delivery-empty {
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+
+    .customer-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 32px;
+    }
+
+    .customer-aside {
+      display: flex;
+      flex-direction: column;
       gap: 20px;
     }
 
-    .wish-card {
-      background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
-      overflow: hidden;
-      transition: var(--transition);
-    }
-    .wish-card:hover { border-color: rgba(232,0,13,0.3); transform: translateY(-3px); }
-    .wish-img { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 56px; background: linear-gradient(135deg, rgba(232,0,13,0.1), rgba(61,0,8,0.3)); }
-    .wish-body { padding: 14px 16px; }
-    .wish-name { font-family: var(--font-cond); font-size: 15px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
-    .wish-price { font-family: var(--font-display); font-size: 20px; color: var(--red-light); margin-bottom: 10px; }
-
-    /* ── SETTINGS FORM ── */
-    .settings-card {
-      background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
+    .aside-card, .panel {
+      background: linear-gradient(150deg, rgba(15,15,15,0.95), rgba(5,5,5,0.9));
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
       padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+    }
+
+    .aside-card h4 {
+      font-family: var(--font-cond);
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .info-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .info-line:last-child { border-bottom: none; }
+
+    .support-card {
+      background: linear-gradient(135deg, rgba(232,0,13,0.15), rgba(50,0,5,0.5));
+      border: 1px solid rgba(232,0,13,0.4);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
       margin-bottom: 20px;
     }
-    .settings-card-title { font-family: var(--font-cond); font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 
-    /* ── LOYALTY ── */
-    .loyalty-bar-wrap { margin: 16px 0; }
-    .loyalty-bar-track { height: 12px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
-    .loyalty-bar-fill { height: 100%; background: linear-gradient(90deg, var(--red), var(--gold)); border-radius: 6px; }
-    .loyalty-labels { display: flex; justify-content: space-between; font-family: var(--font-cond); font-size: 12px; color: var(--gray-text); margin-top: 6px; font-weight: 700; letter-spacing: 1px; }
+    .panel-title {
+      font-family: var(--font-cond);
+      font-size: 18px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
 
-    @media (max-width: 768px) {
-      .profile-card { flex-direction: column; text-align: center; }
-      .profile-stats { justify-content: center; }
-      .cust-tabs { flex-wrap: wrap; }
+    .panel-desc {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+    }
+
+    .panel + .panel { margin-top: 24px; }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .wishlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .wish-card {
+      background: rgba(255,255,255,0.02);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.04);
+      overflow: hidden;
+    }
+
+    .wish-img {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .wish-body { padding: 14px 16px; }
+
+    .addr-card {
+      background: rgba(255,255,255,0.02);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 14px;
+    }
+
+    .settings-form .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .danger-panel {
+      border: 1px solid rgba(232,0,13,0.35);
+      background: linear-gradient(145deg, rgba(232,0,13,0.18), rgba(61,0,8,0.45));
+    }
+
+    @media (max-width: 1100px) {
+      .customer-layout {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-<body>
+<body class="customer-shell">
 
-<!-- ── NAVBAR ── -->
 <nav id="navbar">
   <div class="container">
     <div class="nav-inner">
       <a href="/index.html" class="nav-logo">SHISA<span>FOOD</span><div class="logo-dot"></div></a>
       <div class="nav-menu">
-        <a class="nav-link" href="/index.html#menu">🍜 Menu</a>
-        <a class="nav-link active">👤 Account</a>
-        <a class="nav-link" href="/index.html#promotions">🎉 Promotions</a>
-        <a class="nav-link" href="/shipper/workspace">🛵 Shipper</a>
-        <a class="nav-link" href="/admin/dashboard">⚙️ Admin</a>
+        <a class="nav-link" href="/index.html#hero">Home</a>
+        <a class="nav-link" href="/index.html#menu">Menu</a>
+        <a class="nav-link" href="/index.html#about">About</a>
+        <a class="nav-link" href="/index.html#promotions">Promotions</a>
       </div>
       <div class="nav-actions">
         <button class="nav-icon-btn" id="cart-toggle" onclick="openCartSidebar()">
           🛒 <span class="cart-count show" id="cart-badge">0</span>
         </button>
-        <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="logout()">Logout</button>
+        <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="logout()">Log out</button>
       </div>
     </div>
   </div>
@@ -205,103 +388,197 @@
 
 <div id="toast-container"></div>
 
-<!-- ── HERO STRIP ── -->
-<section class="cust-hero">
-  <div class="cust-hero-bg"></div>
-  <div class="container cust-hero-inner">
-    <!-- PROFILE CARD -->
-    <div class="profile-card">
-      <div class="profile-avatar" id="avatar-letter">M</div>
-      <div>
-        <div class="profile-name" id="profile-name">MINH TRAN</div>
-        <div class="profile-email" id="profile-email">minh@example.com</div>
-        <div class="profile-stats">
-          <div><div class="profile-stat-num" id="pstat-orders">12</div><div class="profile-stat-label">Orders</div></div>
-          <!-- ✗ REMOVED: pstat-points and pstat-saved (not in database) -->
-        </div>
-      </div>
-      <div style="margin-left:auto">
-        <span class="sbadge sbadge-warning">👑 GOLD MEMBER</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── MAIN CONTENT ── -->
-<section class="section" style="padding-top:32px">
+<section class="customer-hero" id="customer-home">
   <div class="container">
-
-    <!-- ✗ LOYALTY PROGRAM REMOVED (points field not in database) -->
-
-    <!-- TABS -->
-    <div class="cust-tabs">
-      <button class="cust-tab active" onclick="switchTab('orders',this)">📦 Orders</button>
-      <button class="cust-tab" onclick="switchTab('wishlist',this)">❤️ Wishlist</button>
-      <button class="cust-tab" onclick="switchTab('address',this)">📍 Addresses</button>
-      <button class="cust-tab" onclick="switchTab('settings',this)">⚙️ Settings</button>
-    </div>
-
-    <!-- TAB: ORDERS -->
-    <div class="c-panel active" id="tab-orders">
-      <div id="orders-list"></div>
-    </div>
-
-    <!-- TAB: WISHLIST -->
-    <div class="c-panel" id="tab-wishlist">
-      <div class="wishlist-grid" id="wishlist-grid"></div>
-    </div>
-
-    <!-- TAB: ADDRESS -->
-    <div class="c-panel" id="tab-address">
-      <div id="address-list"></div>
-      <button class="btn btn-outline" style="margin-top:8px" onclick="toast('Add address feature is coming soon!','info')">+ Add New Address</button>
-    </div>
-
-    <!-- TAB: SETTINGS -->
-    <div class="c-panel" id="tab-settings">
-      <div class="settings-card">
-        <div class="settings-card-title">Profile Information</div>
-        <div class="form-row">
-          <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="s-name" placeholder="John Doe"></div>
-          <div class="form-group"><label>Email</label><input type="email" class="form-control" id="s-email" placeholder="email@example.com"></div>
+    <div class="hero-card">
+      <div class="hero-avatar" id="avatar-letter">C</div>
+      <div class="hero-meta">
+        <div class="hero-name" id="profile-name">CUSTOMER DEMO</div>
+        <div class="hero-email" id="profile-email">customer@shisa.com</div>
+        <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span class="tier-chip">👑 Gold Member</span>
+          <span class="tier-chip" style="background:rgba(99,179,237,0.2);color:#7dd3fc">Priority delivery</span>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label>Phone Number</label><input type="tel" class="form-control" id="s-phone" placeholder="+84 xxx xxx xxx"></div>
-          <!-- ✗ REMOVED: s-dob field (not in database) -->
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-label">TOTAL ORDERS</div>
+            <div class="summary-value" id="pstat-orders">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">LIVE DELIVERIES</div>
+            <div class="summary-value" id="pstat-live">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">PERK WALLET</div>
+            <div class="summary-value">3 vouchers</div>
+          </div>
         </div>
-        <button class="btn btn-primary" style="padding:12px 28px" onclick="saveSettings()">💾 Save Changes</button>
-      </div>
-      <div class="settings-card">
-        <div class="settings-card-title">Change Password</div>
-        <div class="form-group"><label>Current Password</label><input type="password" class="form-control" placeholder="••••••••"></div>
-        <div class="form-row">
-          <div class="form-group"><label>New Password</label><input type="password" class="form-control" placeholder="••••••••"></div>
-          <div class="form-group"><label>Confirm Password</label><input type="password" class="form-control" placeholder="••••••••"></div>
-        </div>
-        <button class="btn btn-primary" style="padding:12px 28px" onclick="toast('Password updated successfully!','success')">🔒 Update Password</button>
-      </div>
-      <div class="settings-card">
-        <div class="settings-card-title" style="color:var(--red-light)">Danger Zone</div>
-        <p style="font-size:14px;color:var(--gray-text);margin-bottom:16px">Deleting your account is irreversible. All of your data will be permanently removed.</p>
-        <button class="btn" style="background:rgba(232,0,13,0.15);color:var(--red-light);border:1px solid rgba(232,0,13,0.3)" onclick="toast('Please contact admin to delete your account','info')">🗑️ Delete Account</button>
+        <p class="hero-subline">Your personal fire deck — lock in every drop-off, stash perk codes, and jump between portals without cooling the flames.</p>
       </div>
     </div>
-
   </div>
 </section>
 
-<!-- ── FOOTER ── -->
+<section class="menu-preview" id="customer-menu">
+  <div class="container">
+    <div class="panel" style="background:rgba(14,14,14,0.92)">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Menu Highlights</div>
+          <div class="panel-desc">Fresh off the fire line and shipping right now</div>
+        </div>
+        <button class="btn btn-outline" onclick="window.location.href='/index.html#menu'">View full menu</button>
+      </div>
+      <div class="menu-card-row">
+        <div class="menu-card">
+          <div style="font-size:32px">🍕</div>
+          <h5>Fire Pizza</h5>
+          <p>Thin crust, double cheese, spicy honey glaze.</p>
+          <strong>149,000 VND</strong>
+        </div>
+        <div class="menu-card">
+          <div style="font-size:32px">🍜</div>
+          <h5>Dragon Noodles</h5>
+          <p>Fresh noodles, grilled Wagyu, satay broth.</p>
+          <strong>119,000 VND</strong>
+        </div>
+        <div class="menu-card">
+          <div style="font-size:32px">🥤</div>
+          <h5>Lychee Sparkle</h5>
+          <p>Black tea shaken with fresh lychee and soda.</p>
+          <strong>59,000 VND</strong>
+        </div>
+        <div class="menu-card">
+          <div style="font-size:32px">🥟</div>
+          <h5>Crispy Bites</h5>
+          <p>Golden dumplings served with sesame dip.</p>
+          <strong>79,000 VND</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-bottom:80px">
+  <div class="container customer-layout">
+    <aside class="customer-aside" id="customer-support">
+      <div class="aside-card">
+        <h4>Need backup?</h4>
+        <div class="info-line"><span>Hotline</span><strong>1900 6868</strong></div>
+        <div class="info-line"><span>Email</span><strong>support@shisa.com</strong></div>
+        <div class="info-line"><span>Delivery window</span><strong>07:00 - 22:00</strong></div>
+      </div>
+      <div class="aside-card support-card">
+        <h4>Rider radar</h4>
+        <p style="font-size:14px;line-height:1.6;color:#ffe4e4">Shadow your order with rider pings, live ETA nudges, and heat alerts.</p>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%" onclick="toast('Coming soon!','info')">Enable alerts</button>
+      </div>
+    </aside>
+
+    <div class="customer-main">
+      <div class="panel" id="customer-delivery-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Delivery</div>
+            <div class="panel-desc">A compact view of in-progress and completed orders</div>
+          </div>
+          <div class="delivery-toolbar">
+            <button class="btn btn-outline delivery-toggle-btn active" id="delivery-toggle-active" onclick="setDeliveryView('active')">In Progress</button>
+            <button class="btn btn-outline delivery-toggle-btn" id="delivery-toggle-history" onclick="setDeliveryView('history')">Delivered History</button>
+            <button class="btn btn-outline" onclick="refreshCustomerOrders(true)">Refresh</button>
+          </div>
+        </div>
+        <div class="delivery-grid">
+          <div class="delivery-section" id="delivery-active-section">
+            <div class="delivery-section-head">
+              <div class="delivery-section-title">In Progress</div>
+              <div class="delivery-section-subtitle" id="delivery-active-summary">0</div>
+            </div>
+            <div class="delivery-list" id="delivery-status-list"></div>
+            <div id="delivery-active-pagination"></div>
+          </div>
+          <div class="delivery-section" id="delivery-history-section">
+            <div class="delivery-section-head">
+              <div class="delivery-section-title">Delivered History</div>
+              <div class="delivery-section-subtitle" id="delivery-history-summary">0</div>
+            </div>
+            <div class="delivery-list" id="delivery-history-list"></div>
+            <div id="delivery-history-pagination"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <div class="grid-two">
+          <div>
+            <div class="panel-head" style="margin-bottom:12px">
+              <div>
+                <div class="panel-title">Wishlist</div>
+                <div class="panel-desc">Pin dishes you want to reignite later</div>
+              </div>
+            </div>
+            <div class="wishlist-grid" id="wishlist-grid"></div>
+          </div>
+          <div>
+            <div class="panel-head" style="margin-bottom:12px">
+              <div>
+                <div class="panel-title">Drop zones</div>
+                <div class="panel-desc">Lock in the places you want the fire to land</div>
+              </div>
+              <button class="btn btn-outline" onclick="toast('Feature is under development','info')">+ Add new</button>
+            </div>
+            <div id="address-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Account Intel</div>
+            <div class="panel-desc">Keep mission-critical details current</div>
+          </div>
+        </div>
+        <div class="settings-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name</label>
+              <input type="text" class="form-control" id="s-name" placeholder="Nguyen Van A">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" class="form-control" id="s-email" placeholder="email@example.com">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Phone number</label>
+              <input type="tel" class="form-control" id="s-phone" placeholder="09xx xxx xxx">
+            </div>
+          </div>
+          <button class="btn btn-primary" style="padding:12px 28px" onclick="saveSettings()">Save changes</button>
+        </div>
+      </div>
+
+      <div class="panel danger-panel" style="margin-top:20px">
+        <div class="panel-title" style="color:var(--red-light)">Danger zone</div>
+        <p style="font-size:14px;color:rgba(255,255,255,0.8);margin:12px 0">This wipes every order trail, perk token, and delivery footprint. Only tap out if you truly want to cool the flames.</p>
+        <button class="btn" style="background:rgba(232,0,13,0.4);border:1px solid rgba(232,0,13,0.6);color:#fff" onclick="toast('Please contact our hotline to request deletion','info')">Request account deletion</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="container">
     <div style="padding:32px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;border-top:1px solid rgba(255,255,255,0.05)">
       <div style="font-family:var(--font-display);font-size:24px;letter-spacing:3px">SHISA<span style="color:var(--red)">FOOD</span></div>
-      <div style="font-size:13px;color:var(--gray-text)">© 2025 ShisaFood. All rights reserved.</div>
+      <div style="font-size:13px;color:var(--gray-text)">© 2026 ShisaFood. Fire Up Your Cravings.</div>
       <div style="display:flex;gap:16px">
-        <a href="/index.html" style="font-size:13px;color:var(--gray-text);transition:var(--transition)">Home</a>
+        <a href="/index.html" style="font-size:13px;color:var(--gray-text)">Home</a>
         <a href="/index.html#menu" style="font-size:13px;color:var(--gray-text)">Menu</a>
         <a href="/index.html#promotions" style="font-size:13px;color:var(--gray-text)">Promotions</a>
-        <a href="/shipper/workspace" style="font-size:13px;color:var(--gray-text)">Shipper</a>
-        <a href="/admin/dashboard" style="font-size:13px;color:var(--gray-text)">Admin</a>
+        <a href="mailto:partnership@shisa.com" style="font-size:13px;color:var(--gray-text)">Partnership</a>
       </div>
     </div>
   </div>
@@ -311,5 +588,18 @@
 <script src="/static/js/supabase-web.js"></script>
 <script src="/static/js/api-client.js"></script>
 <script src="/static/js/customer.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-scroll]').forEach((link) => {
+      link.addEventListener('click', () => {
+        const targetId = link.getAttribute('data-scroll');
+        const section = document.getElementById(targetId);
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  });
+</script>
 </body>
 </html>

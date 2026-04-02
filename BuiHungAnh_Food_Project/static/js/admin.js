@@ -15,6 +15,9 @@ const ADMIN_DATA = {
   ],
 };
 
+const SESSION_USER_KEY = 'shisa_current_user';
+const SESSION_STORAGE_KEY = 'shisa_current_user_email';
+
 const STATUS_MAP = {
   pending: { label: 'Pending', cls: 'sbadge-warning' },
   waiting_for_shipper: { label: 'Waiting Shipper', cls: 'sbadge-warning' },
@@ -765,7 +768,22 @@ async function initOrdersRealtime() {
   }
 }
 
-function logout() {
+async function logout() {
+  try {
+    if (window.SupabaseWeb && typeof window.SupabaseWeb.signOut === 'function') {
+      await window.SupabaseWeb.signOut();
+    }
+  } catch (err) {
+    console.warn('[Admin] Supabase signOut failed:', err);
+  }
+
+  try {
+    localStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (err) {
+    console.warn('[Admin] Failed to clear session storage:', err);
+  }
+
   adminToast('Logged out. See you soon!', 'info');
   setTimeout(() => {
     window.location.href = '/index.html';

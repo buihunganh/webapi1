@@ -4,10 +4,30 @@ from flask import Blueprint, current_app, jsonify, render_template, request, sen
 
 from models.supabase_client import get_supabase
 from models.products import get_all_products, update_product_image_url
-from models.orders import get_all_orders, update_order_status
+from models.orders import create_order, get_all_orders, update_order_status
 from models.users import get_all_users, get_user_by_email, hash_password, insert_user, verify_password
 
 customer_bp = Blueprint('customer', __name__)
+
+
+def _resolve_role(role_id: int) -> str:
+    if role_id == 1:
+        return 'admin'
+    if role_id == 2:
+        return 'shipper'
+    return 'customer'
+
+
+def _serialize_auth_user(user: dict) -> dict:
+    role_id = int(user.get('roleid') or 3)
+    return {
+        "id": user.get('userid'),
+        "name": user.get('fullname'),
+        "email": user.get('email'),
+        "phone": user.get('phone'),
+        "role": _resolve_role(role_id),
+        "role_id": role_id,
+    }
 
 @customer_bp.route('/')
 @customer_bp.route('/index.html')
@@ -92,8 +112,61 @@ def api_orders():
     limit = request.args.get('limit', default=20, type=int)
     limit = max(1, min(limit, 500))
 
-    data = get_all_orders()[:limit]
+    data = get_all_orders(limit)
     return jsonify({"count": len(data), "items": data}), 200
+
+
+@customer_bp.route('/api/orders', methods=['POST'])
+def api_create_order():
+    """Create a new order directly from the storefront checkout."""
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        customer_id = int(payload.get('customer_id') or 0)
+    except (TypeError, ValueError):
+        customer_id = 0
+
+    items = payload.get('items') or []
+    if customer_id <= 0:
+        return jsonify({"ok": False, "error": "customer_id is required"}), 400
+    if not isinstance(items, list) or not items:
+        return jsonify({"ok": False, "error": "items must be a non-empty list"}), 400
+
+    shipping_fee = payload.get('shipping_fee')
+    promotion_code = payload.get('promotion_code')
+    delivery_phone = (payload.get('delivery_phone') or '').strip() or None
+    delivery_address = (payload.get('delivery_address') or '').strip() or None
+    city = (payload.get('city') or '').strip() or None
+    notes = (payload.get('notes') or '').strip() or None
+    payment_method = (payload.get('payment_method') or 'cod').strip().lower()
+    customer_name = (payload.get('customer_name') or '').strip() or None
+
+    address_id = payload.get('address_id')
+    try:
+        address_id = int(address_id) if address_id is not None else None
+    except (TypeError, ValueError):
+        address_id = None
+
+    try:
+        order_summary = create_order(
+            customer_id=customer_id,
+            items=items,
+            shipping_fee=shipping_fee,
+            promotion_code=promotion_code,
+            delivery_phone=delivery_phone,
+            address_id=address_id,
+            delivery_address=delivery_address,
+            city=city,
+            notes=notes,
+            payment_method=payment_method,
+            customer_name=customer_name,
+        )
+        return jsonify({"ok": True, "order": order_summary}), 201
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception('Failed to create order')
+        return jsonify({"ok": False, "error": "Failed to create order"}), 500
 
 
 @customer_bp.route('/api/orders/<int:order_id>/status', methods=['POST'])
@@ -139,26 +212,13 @@ def api_auth_login():
         if not verify_password(password, user.get('passwordhash')):
             return jsonify({"ok": False, "error": "Wrong password"}), 401
 
-        role_name = 'customer'
-        role_id = int(user.get('roleid') or 3)
-        if role_id == 1:
-            role_name = 'admin'
-        elif role_id == 2:
-            role_name = 'shipper'
-
         return jsonify({
             "ok": True,
-            "user": {
-                "id": user.get('userid'),
-                "name": user.get('fullname'),
-                "email": user.get('email'),
-                "phone": user.get('phone'),
-                "role": role_name,
-                "role_id": role_id,
-            }
+            "user": _serialize_auth_user(user)
         }), 200
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 500
+    except Exception:
+        current_app.logger.exception('Login failed')
+        return jsonify({"ok": False, "error": "Login failed"}), 500
 
 
 @customer_bp.route('/api/auth/register', methods=['POST'])
@@ -194,8 +254,9 @@ def api_auth_register():
                 "role_id": 3,
             }
         }), 201
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 500
+    except Exception:
+        current_app.logger.exception('Register failed')
+        return jsonify({"ok": False, "error": "Register failed"}), 500
 
 
 @customer_bp.route('/api/auth/profile', methods=['GET'])
@@ -209,24 +270,10 @@ def api_auth_profile():
         user = get_user_by_email(email)
         if not user:
             return jsonify({"ok": False, "error": "Profile not found"}), 404
-
-        role_id = int(user.get('roleid') or 3)
-        role_name = 'customer'
-        if role_id == 1:
-            role_name = 'admin'
-        elif role_id == 2:
-            role_name = 'shipper'
-
         return jsonify({
             "ok": True,
-            "user": {
-                "id": user.get('userid'),
-                "name": user.get('fullname'),
-                "email": user.get('email'),
-                "phone": user.get('phone'),
-                "role": role_name,
-                "role_id": role_id,
-            }
+            "user": _serialize_auth_user(user)
         }), 200
-    except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 500
+    except Exception:
+        current_app.logger.exception('Load profile failed')
+        return jsonify({"ok": False, "error": "Failed to load profile"}), 500

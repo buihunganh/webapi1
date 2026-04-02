@@ -1,15 +1,21 @@
+const MAX_ACTIVE_ORDERS = 2;
+const POLLING_INTERVAL_MS = 20000;
+
 const SHIPPER_STATE = {
     profile: {
         name: 'Shipper',
         isOnline: true,
-        // 274C REMOVED: zone, rating, avgMinutes, totalDeliveries, totalEarnings (not in database)
     },
     newOrders: [], // Will load from API
     activeOrders: [], // Will load from API
     doneOrders: [], // Will load from API
 };
 
+const SESSION_USER_KEY = 'shisa_current_user';
+const SESSION_STORAGE_KEY = 'shisa_current_user_email';
+
 let unsubscribeOrdersRealtime = null;
+let ordersPollingHandle = null;
 
 function shipperToast(message, type = 'info') {
     if (typeof window.showToast === 'function') {
@@ -28,6 +34,7 @@ function formatOrderDisplayId(dbId) {
 }
 
 function mapApiOrder(order) {
+    const createdAt = order.orderdate ? new Date(order.orderdate) : null;
     return {
         dbId: Number(order.orderid),
         id: formatOrderDisplayId(order.orderid),
@@ -42,7 +49,8 @@ function mapApiOrder(order) {
         eta: '20 mins',
         stage: 'picked',
         rawStatus: order.orderstatus || 'pending',
-        time: order.orderdate ? new Date(order.orderdate).toLocaleString() : '-',
+        time: createdAt ? createdAt.toLocaleString() : '-',
+        createdAt: createdAt ? createdAt.getTime() : 0,
     };
 }
 
@@ -53,10 +61,16 @@ async function loadShipperOrdersFromAPI() {
         if (!Array.isArray(orders) || !orders.length) return;
 
         const mapped = orders.map(mapApiOrder);
-        SHIPPER_STATE.newOrders = mapped.filter((o) => o.rawStatus === 'pending' || o.rawStatus === 'waiting_for_shipper');
-        SHIPPER_STATE.activeOrders = mapped
-            .filter((o) => o.rawStatus === 'shipping')
-            .map((o) => ({ ...o, stage: 'picked', eta: '10 mins' }));
+        const sortAsc = (list) => list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+        SHIPPER_STATE.newOrders = sortAsc(
+            mapped.filter((o) => o.rawStatus === 'pending' || o.rawStatus === 'waiting_for_shipper')
+        );
+        SHIPPER_STATE.activeOrders = sortAsc(
+            mapped
+                .filter((o) => o.rawStatus === 'shipping')
+                .map((o) => ({ ...o, stage: 'picked', eta: '10 mins' }))
+        );
         SHIPPER_STATE.doneOrders = mapped
             .filter((o) => o.rawStatus === 'completed')
             .map((o) => ({
@@ -67,14 +81,20 @@ async function loadShipperOrdersFromAPI() {
                 time: o.time,
                 rating: 5,
                 fee: o.fee,
-            }));
+                createdAt: o.createdAt,
+            }))
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     } catch (err) {
         shipperToast(`Using local fallback data: ${err.message || err}`, 'info');
     }
 }
 
 async function initOrdersRealtime() {
-    if (!window.SupabaseWeb) return;
+    if (!window.SupabaseWeb || typeof window.SupabaseWeb.subscribeOrders !== 'function') {
+        shipperToast('Supabase realtime unavailable, falling back to polling', 'info');
+        startOrdersPolling();
+        return;
+    }
     try {
         unsubscribeOrdersRealtime = await window.SupabaseWeb.subscribeOrders(async () => {
             await loadShipperOrdersFromAPI();
@@ -83,15 +103,38 @@ async function initOrdersRealtime() {
             renderHistory();
             renderStats();
         });
+        stopOrdersPolling();
     } catch (err) {
         shipperToast(`Realtime disabled: ${err.message || err}`, 'info');
+        startOrdersPolling();
     }
 }
 
+function startOrdersPolling() {
+    if (ordersPollingHandle) return;
+    ordersPollingHandle = setInterval(async () => {
+        await loadShipperOrdersFromAPI();
+        renderNewOrders();
+        renderActiveOrders();
+        renderHistory();
+        renderStats();
+    }, POLLING_INTERVAL_MS);
+}
+
+function stopOrdersPolling() {
+    if (!ordersPollingHandle) return;
+    clearInterval(ordersPollingHandle);
+    ordersPollingHandle = null;
+}
+
 function renderStats() {
-    const completedToday = SHIPPER_STATE.doneOrders.filter((o) => o.time.startsWith('2026-03-29')).length;
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+    const completedToday = SHIPPER_STATE.doneOrders.filter((o) => (o.createdAt || 0) >= startOfDay && (o.createdAt || 0) < endOfDay).length;
     const todayEarning = SHIPPER_STATE.doneOrders
-        .filter((o) => o.time.startsWith('2026-03-29'))
+        .filter((o) => (o.createdAt || 0) >= startOfDay && (o.createdAt || 0) < endOfDay)
         .reduce((sum, o) => sum + o.fee, 0);
     
     // Calculate lifetime stats from doneOrders
@@ -113,7 +156,6 @@ function renderStats() {
     if (completeEl) completeEl.textContent = `${completedToday} completed orders`;
     if (totalDeliveriesEl) totalDeliveriesEl.textContent = totalDeliveries;
     if (avgRatingEl) avgRatingEl.textContent = avgRatingValue.toFixed(1);
-    // ✗ REMOVED: avgMinutes (not in database)
     if (totalEarningsEl) totalEarningsEl.textContent = money(SHIPPER_STATE.doneOrders.reduce((sum, o) => sum + (o.fee || 0), 0));
     if (badgeNew) badgeNew.textContent = SHIPPER_STATE.newOrders.length;
 }
@@ -226,6 +268,10 @@ async function acceptOrder(orderId) {
         shipperToast('You are offline and cannot accept orders', 'error');
         return;
     }
+    if (SHIPPER_STATE.activeOrders.length >= MAX_ACTIVE_ORDERS) {
+        shipperToast(`Bạn chỉ được nhận tối đa ${MAX_ACTIVE_ORDERS} đơn cùng lúc`, 'error');
+        return;
+    }
     const index = SHIPPER_STATE.newOrders.findIndex((o) => o.id === orderId);
     if (index < 0) return;
     const order = SHIPPER_STATE.newOrders.splice(index, 1)[0];
@@ -270,15 +316,15 @@ async function completeOrder(orderId) {
         shipperToast(`Complete failed: ${err.message || err}`, 'error');
         return;
     }
-    // ✗ REMOVED: totalDeliveries and totalEarnings increment (calculated from doneOrders now)
     SHIPPER_STATE.doneOrders.push({
         id: order.id,
         customer: order.customer,
         address: order.dropoff,
         value: order.value,
-        time: '2026-03-29 12:10',
+        time: new Date().toLocaleString(),
         rating: 5,
         fee: order.fee,
+        createdAt: Date.now(),
     });
 
     renderActiveOrders();
@@ -295,7 +341,22 @@ function navigateOrder(orderId) {
     shipperToast(`Opening navigation for ${orderId}`, 'info');
 }
 
-function logout() {
+async function logout() {
+    try {
+        if (window.SupabaseWeb && typeof window.SupabaseWeb.signOut === 'function') {
+            await window.SupabaseWeb.signOut();
+        }
+    } catch (err) {
+        console.warn('[Shipper] Supabase signOut failed:', err);
+    }
+
+    try {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        localStorage.removeItem(SESSION_USER_KEY);
+    } catch (err) {
+        console.warn('[Shipper] Failed to clear session storage:', err);
+    }
+
     shipperToast('Shipper account logged out', 'info');
     setTimeout(() => {
         window.location.href = '/index.html';
@@ -327,4 +388,5 @@ window.addEventListener('beforeunload', () => {
     if (typeof unsubscribeOrdersRealtime === 'function') {
         unsubscribeOrdersRealtime();
     }
+    stopOrdersPolling();
 });
