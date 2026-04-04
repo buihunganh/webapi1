@@ -1,4 +1,4 @@
-﻿    // ========== DATA STORE ==========
+    // ========== DATA STORE ==========
     let state = {
       currentUser: null,
       cart: [],
@@ -577,6 +577,14 @@
     }
 
     function socialLogin(provider) {
+      if (provider === 'Facebook') {
+        window.location.href = getAppBaseUrl() + '/login/facebook';
+        return;
+      }
+      if (provider === 'Google') {
+        window.location.href = getAppBaseUrl() + '/login/google';
+        return;
+      }
       const fakeUser = { id: Date.now(), name: provider + ' User', email: provider.toLowerCase() + '@social.com', role: 'customer', orders: [], joined: new Date().toISOString().split('T')[0] };
       USERS.push(fakeUser);
       saveUsersToStorage();
