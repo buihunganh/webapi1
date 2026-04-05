@@ -227,7 +227,7 @@ class APIClient {
     return data.user;
   }
 
-  static async deactivateAdminUser(userId) {
+  static async deleteAdminUser(userId) {
     const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
       method: "DELETE",
     });
@@ -235,9 +235,9 @@ class APIClient {
     if (!text) throw new Error("Empty response from server");
     const data = JSON.parse(text);
     if (!res.ok || data.ok === false) {
-      throw new Error(data.error || "Failed to deactivate user");
+      throw new Error(data.error || "Failed to delete user");
     }
-    return data.user;
+    return data;
   }
 
   /**

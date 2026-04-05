@@ -531,7 +531,7 @@ function renderUsers() {
         <td>
           <div class="abtns">
             <button class="abtn abtn-edit" onclick="openUserModal('customer', ${u.id})">Edit</button>
-            <button class="abtn ${u.active ? "abtn-del" : "abtn-view"}" onclick="toggleUserActive(${u.id}, ${!u.active}, 'customer')">${actionLabel}</button>
+            <button class="abtn abtn-del" onclick="deleteAdminUser(${u.id})">Delete</button>
           </div>
         </td>
       </tr>`;
@@ -573,7 +573,7 @@ function renderShippers() {
         <td>
           <div class="abtns">
             <button class="abtn abtn-edit" onclick="openUserModal('shipper', ${s.id})">Edit</button>
-            <button class="abtn ${s.active ? "abtn-del" : "abtn-view"}" onclick="toggleUserActive(${s.id}, ${!s.active}, 'shipper')">${actionLabel}</button>
+            <button class="abtn abtn-del" onclick="deleteAdminUser(${s.id})">Delete</button>
           </div>
         </td>
       </tr>`;
@@ -862,21 +862,17 @@ async function saveUserInfo() {
   }
 }
 
-async function toggleUserActive(userId, shouldActivate, role = "customer") {
+async function deleteAdminUser(userId) {
+  if (!confirm("Are you sure you want to delete this account?")) return;
   try {
-    if (shouldActivate) {
-      await APIClient.updateAdminUser(userId, { role, is_active: true });
-      adminToast("User activated", "success");
-    } else {
-      await APIClient.deactivateAdminUser(userId);
-      adminToast("User deactivated", "success");
-    }
+    const res = await APIClient.deleteAdminUser(userId);
+    adminToast(res.message || "User deleted", "success");
     await loadAdminDataFromAPI();
     renderStats();
     renderUsers();
     renderShippers();
   } catch (err) {
-    adminToast(err.message || "Update failed", "error");
+    adminToast(err.message || "Delete failed", "error");
   }
 }
 

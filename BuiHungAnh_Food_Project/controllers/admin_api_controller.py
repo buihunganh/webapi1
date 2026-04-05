@@ -83,9 +83,17 @@ def admin_create_user():
         return jsonify({"ok": False, "error": 'Email already exists'}), 409
 
     password_hash = hash_password(password)
-    new_id = insert_user(full_name, email, password_hash, role_id=role_id, phone=phone)
-    created = get_user_by_id(new_id)
-    return jsonify({"ok": True, "user": _serialize_user(created)}), 201
+    try:
+        new_id = insert_user(full_name, email, password_hash, role_id=role_id, phone=phone)
+        created = get_user_by_id(new_id)
+        return jsonify({"ok": True, "user": _serialize_user(created)}), 201
+    except Exception as e:
+        msg = str(e)
+        if "duplicate key value" in msg.lower() or "already exists" in msg.lower():
+            if "phone" in msg.lower():
+                return jsonify({"ok": False, "error": "Số điện thoại này đã được sử dụng!"}), 409
+            return jsonify({"ok": False, "error": "Email hoặc SĐT đã tồn tại!"}), 409
+        return jsonify({"ok": False, "error": msg}), 500
 
 
 @admin_api_bp.route('/users/<int:user_id>', methods=['PUT'])
@@ -118,12 +126,15 @@ def admin_update_user(user_id):
 
 @admin_api_bp.route('/users/<int:user_id>', methods=['DELETE'])
 def admin_delete_user(user_id):
+    from models.users import delete_user, get_user_by_id, ROLE_NAME_TO_ID
     current = get_user_by_id(user_id)
     if not current:
         return jsonify({"ok": False, "error": 'User not found'}), 404
     if int(current.get('roleid') or 0) == ROLE_NAME_TO_ID['admin']:
         return jsonify({"ok": False, "error": 'Cannot deactivate admin accounts'}), 400
 
-    set_user_active(user_id, False)
-    refreshed = get_user_by_id(user_id)
-    return jsonify({"ok": True, "user": _serialize_user(refreshed)}), 200
+    success, msg = delete_user(user_id)
+    if not success:
+        return jsonify({"ok": False, "error": msg}), 500
+    return jsonify({"ok": True, "message": msg}), 200
+
