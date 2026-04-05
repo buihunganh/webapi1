@@ -32,6 +32,8 @@ let editingUserId = null;
 let editingUserRole = 'customer';
 const filterTimers = {};
 
+
+
 function initContrastModeWatcher() {
   if (typeof window === 'undefined') return;
 
@@ -104,7 +106,7 @@ function adminToast(msg, type = 'info') {
   const toast = document.createElement('div');
   toast.style.cssText = `
     display:flex;align-items:center;gap:10px;
-    background:${type==='error'?'rgba(232,0,13,0.92)':type==='success'?'rgba(34,197,94,0.92)':'rgba(30,30,30,0.95)'};
+    background:${type === 'error' ? 'rgba(232,0,13,0.92)' : type === 'success' ? 'rgba(34,197,94,0.92)' : 'rgba(30,30,30,0.95)'};
     color:#fff;padding:13px 20px;border-radius:10px;
     font-family:var(--font-cond,sans-serif);font-size:14px;font-weight:700;letter-spacing:.5px;
     box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:220px;max-width:360px;
@@ -233,14 +235,24 @@ async function loadAdminDataFromAPI() {
         dbId,
         customerId,
         shipperId,
-        customer: customerId ? `Customer #${customerId}` : 'Customer',
-        items: o.notes || 'View order details',
-        total: Number(o.totalamount || o.subtotal || 0),
+        customer: o.customer?.fullname || (customerId ? `Customer #${customerId}` : 'Customer'),
+        items: o.items_summary || o.notes || 'View order details',
+        subtotal: Number(o.subtotal || 0),
+        shipping: Number(o.shippingfee || 0),
+        discount: Number(o.discount || 0),
+        get total() {
+          // Always re-calculate in frontend for consistency, ignore potentially stale totalamount stored column
+          return (this.subtotal + this.shipping) - this.discount;
+        },
         shipper: shipperId ? `Shipper #${shipperId}` : '-',
         status: o.orderstatus || 'pending',
         date: o.orderdate ? new Date(o.orderdate).toLocaleString('vi-VN') : '-',
         notes: o.notes || '',
-        address: o.deliveryaddress || o.deliveryphone || '-',
+        address: o.address?.fulladdress || o.deliveryphone || '-',
+        lat: Number(o.latitude),
+        lng: Number(o.longitude),
+        shipper_lat: Number(o.shipper_lat),
+        shipper_lng: Number(o.shipper_lng),
       };
     });
 
@@ -325,6 +337,8 @@ function renderRevenueChart() {
     console.error('[Admin] renderRevenueChart error:', err);
   }
 }
+
+
 
 function renderRecentOrders() {
   try {
@@ -721,6 +735,8 @@ function openOrderDetails(orderId) {
     'order-detail-id': order.id,
     'order-detail-customer': order.customer,
     'order-detail-shipper': order.shipper,
+    'order-detail-subtotal': `$${parseAmount(order.subtotal).toFixed(2)}`,
+    'order-detail-shipping': `$${parseAmount(order.shipping).toFixed(2)}`,
     'order-detail-total': `$${parseAmount(order.total).toFixed(2)}`,
     'order-detail-status': order.status,
     'order-detail-date': order.date,
@@ -733,6 +749,8 @@ function openOrderDetails(orderId) {
   });
   modal.classList.remove('hidden');
 }
+
+
 
 function closeOrderModal() {
   const modal = document.getElementById('order-modal');
@@ -758,14 +776,14 @@ async function initOrdersRealtime() {
       renderStats();
       renderRecentOrders();
       renderProducts();
-      renderOrders();
-      renderUsers();
       renderShippers();
       renderPromos();
     });
   } catch (err) {
     adminToast(`Realtime disabled: ${err.message || err}`, 'info');
   }
+
+
 }
 
 async function logout() {
@@ -797,34 +815,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('[Admin] Calling loadAdminDataFromAPI...');
     await loadAdminDataFromAPI();
     console.log('[Admin] Data load complete, rendering...');
-    
     renderStats();
-    console.log('[Admin] Stats rendered');
-    
     renderRevenueChart();
-    console.log('[Admin] Revenue chart rendered');
-    
     renderRecentOrders();
-    console.log('[Admin] Recent orders rendered');
-    
     renderProducts();
-    console.log('[Admin] Products rendered');
-    
     renderOrders();
-    console.log('[Admin] Orders rendered');
-    
     renderUsers();
-    console.log('[Admin] Users rendered');
-    
     renderShippers();
-    console.log('[Admin] Shippers rendered');
-    
     renderPromos();
-    console.log('[Admin] Promos rendered');
-    
+
+
     updateClock();
     setInterval(updateClock, 1000);
-    
+
     console.log('[Admin] Initializing realtime subscriptions...');
     await initOrdersRealtime();
     console.log('[Admin] Dashboard fully loaded!');

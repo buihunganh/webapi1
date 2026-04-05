@@ -1,4 +1,4 @@
-﻿    /* ===== CSS VARIABLES ===== */
+    /* ===== CSS VARIABLES ===== */
     :root {
       --red: #E8000D;
       --red-dark: #A80009;
@@ -1626,7 +1626,6 @@
       transition: var(--transition);
       cursor: pointer;
       position: relative;
-      group: true;
     }
 
     .product-card:hover {
@@ -2857,11 +2856,8 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       overflow: hidden;
-      height: 200px;
+      height: 220px;
       margin-top: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       position: relative;
     }
 
@@ -2869,6 +2865,20 @@
       width: 100%;
       height: 100%;
       border-radius: inherit;
+    }
+
+    .store-marker {
+      background-image: url('https://cdn-icons-png.flaticon.com/512/619/619153.png'); /* Premium Red House Icon */
+      background-size: cover;
+      width: 45px;
+      height: 45px;
+      cursor: pointer;
+      filter: drop-shadow(0 4px 10px rgba(232, 0, 13, 0.4));
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .store-marker:hover {
+      transform: scale(1.15) rotate(5deg);
     }
 
     .map-placeholder {

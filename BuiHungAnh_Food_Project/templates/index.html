@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ShisaFood  Bold Spicy Noodles, Pizza, Beverages & Sides. Order Online Now.">
+  <meta name="keywords" content="spicy noodles, pizza, food delivery, ShisaFood, beverages, side dishes">
+  <meta name="author" content="ShisaFood">
+  <title>ShisaFood Fire Up Your Cravings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Barlow+Condensed:wght@400;700;900&display=swap"
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script>
+    window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_access_token }}";
+  </script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+  <link rel="stylesheet"
+    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+  <script
+    src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+</head>
+
+<body>
+  <!-- PAGE LOADER -->
+  <div id="page-loader">
+    <div class="loader-logo">SHISA<span>FOOD</span></div>
+    <div class="loader-bar">
+      <div class="loader-bar-fill"></div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <!-- BACK TO TOP -->
+  <button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="#hero" class="nav-logo">
+          SHISA<span>FOOD</span>
+          <div class="logo-dot"></div>
+        </a>
+        <div class="nav-menu">
+          <a class="nav-link active" href="#hero" data-nav>Home</a>
+          <a class="nav-link" href="#menu" data-nav>Menu</a>
+          <a class="nav-link" href="#about" data-nav>About</a>
+          <a class="nav-link" href="#promotions" data-nav>Promotions</a>
+        </div>
+        <div class="nav-actions">
+          <button class="nav-icon-btn is-hidden" id="cart-toggle" title="Cart" aria-label="Cart" type="button">
+            🛒
+            <span class="cart-count" id="cart-count">0</span>
+          </button>
+          <button class="btn btn-primary" id="login-btn" onclick="openModal('login-modal')" type="button">Login</button>
+          <div id="user-menu" class="user-menu-wrap is-hidden">
+            <button class="nav-icon-btn" id="user-btn" onclick="toggleUserDropdown()" type="button">👤</button>
+            <div id="user-dropdown" class="user-dropdown-menu is-hidden">
+              <div class="user-greeting-title" id="user-greeting">Hello, User</div>
+              <button class="mobile-nav-link user-dropdown-link is-hidden" id="customer-access-btn"
+                onclick="openCustomerPortal()">👤 Customer Portal</button>
+              <button class="mobile-nav-link user-dropdown-link is-hidden" id="shipper-access-btn"
+                onclick="openShipperWorkspace()">🛵 Shipper Workspace</button>
+              <button class="mobile-nav-link user-dropdown-link is-hidden" id="admin-access-btn"
+                onclick="openAdminDashboard()">⚙️ Admin Dashboard</button>
+              <button class="mobile-nav-link user-dropdown-link user-dropdown-logout" onclick="logout()">🚪
+                Logout</button>
+            </div>
+          </div>
+          <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu"
+            type="button">☰</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a class="mobile-nav-link" href="#hero" onclick="closeMobileMenu()">🏠 Home</a>
+    <a class="mobile-nav-link" href="#menu" onclick="closeMobileMenu()">🍜 Menu</a>
+    <a class="mobile-nav-link" href="#about" onclick="closeMobileMenu()">ℹ️ About</a>
+    <a class="mobile-nav-link" href="#promotions" onclick="closeMobileMenu()">🎉 Promotions</a>
+  </div>
+
+  <!-- CART OVERLAY -->
+  <div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
+
+  <!-- CART SIDEBAR -->
+  <div id="cart-sidebar">
+    <div class="cart-header">
+      <div class="cart-title">YOUR CART</div>
+      <button class="modal-close" onclick="closeCart()">✕</button>
+    </div>
+    <div class="cart-items" id="cart-items-list">
+      <div class="cart-empty">
+        <div class="cart-empty-icon">🛒</div>
+        <div class="cart-empty-title">Your cart is empty
+        </div>
+        <div class="cart-empty-subtitle">Add some fire to your order!</div>
+      </div>
+    </div>
+    <div class="cart-footer is-hidden" id="cart-footer">
+      <div class="cart-promo">
+        <input type="text" id="promo-input" placeholder="Promo code" class="form-control promo-input-rounded">
+        <button class="btn btn-ghost btn-apply-sm" onclick="applyPromo()">APPLY</button>
+      </div>
+      <div class="cart-totals">
+        <div class="cart-total-row"><span>Subtotal</span><span id="cart-subtotal">$0.00</span></div>
+        <div class="cart-total-row" id="cart-delivery-row"><span>Delivery</span><span id="cart-delivery">$0.00</span>
+        </div>
+        <div class="cart-total-row is-hidden" id="cart-discount-row"><span>Discount</span><span id="cart-discount"
+            class="text-success">-$0.00</span></div>
+        <div class="cart-total-row total"><span>TOTAL</span><span class="price" id="cart-total">$0.00</span></div>
+      </div>
+      <button class="checkout-btn" onclick="openCheckout()">CHECKOUT →</button>
+    </div>
+  </div>
+
+  <!-- ==================== HERO ==================== -->
+  <section id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="container">
+      <div class="hero-inner">
+        <div class="hero-content">
+          <div class="hero-eyebrow">🔥 <span>New Menu Just Dropped</span></div>
+          <h1 class="hero-title">
+            FIRE UP<br>
+            <span class="accent">YOUR</span>
+            <span class="stroke">CRAVINGS</span>
+          </h1>
+          <p class="hero-desc">Bold flavors, explosive spice, and unforgettable combinations. ShisaFood brings you the
+            hottest noodles, pizza, and sides straight from the fire.</p>
+          <div class="hero-cta">
+            <a href="#menu" class="btn btn-primary">🍜 Explore Menu</a>
+            <a href="#promotions" class="btn btn-outline">🔥 Today's Deals</a>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <div class="stat-num">50<span>+</span></div>
+              <div class="stat-label">Menu Items</div>
+            </div>
+            <div>
+              <div class="stat-num">4.9<span>★</span></div>
+              <div class="stat-label">Rating</div>
+            </div>
+            <div>
+              <div class="stat-num">10<span>K+</span></div>
+              <div class="stat-label">Happy Customers</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-dish-card">
+            <span class="hero-dish-emoji">🍜</span>
+            <div class="hero-dish-name">VOLCANO NOODLES</div>
+            <div class="hero-dish-price">From $12.99</div>
+          </div>
+          <div class="hero-floating-badge">🌶️ EXTRA SPICY</div>
+          <div class="hero-floating-badge">🎉 20% OFF TODAY</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <div class="scroll-line"></div>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- PROMO TICKER -->
+  <div class="promo-ticker">
+    <div class="promo-ticker-inner" id="ticker-inner">
+      <span class="promo-item">FREE DELIVERY OVER $25</span>
+      <span class="promo-item">USE CODE SHISA20 FOR 20% OFF</span>
+      <span class="promo-item">NEW VOLCANO RAMEN NOW AVAILABLE</span>
+      <span class="promo-item">COMBO DEALS STARTING AT $19.99</span>
+      <span class="promo-item">LOYALTY REWARDS - EARN POINTS WITH EVERY ORDER</span>
+      <span class="promo-item">FREE DELIVERY OVER $25</span>
+      <span class="promo-item">USE CODE SHISA20 FOR 20% OFF</span>
+      <span class="promo-item">NEW VOLCANO RAMEN NOW AVAILABLE</span>
+      <span class="promo-item">COMBO DEALS STARTING AT $19.99</span>
+      <span class="promo-item">LOYALTY REWARDS - EARN POINTS WITH EVERY ORDER</span>
+    </div>
+  </div>
+
+  <!-- ==================== CATEGORIES ==================== -->
+  <section id="categories" class="section">
+    <div class="container">
+      <div class="section-header text-center">
+        <div class="section-label justify-center">Browse</div>
+        <h2 class="section-title">SHOP BY CATEGORY</h2>
+      </div>
+      <div class="categories-grid" id="categories-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MENU / PRODUCTS ==================== -->
+  <section id="menu" class="section section-pt-0">
+    <div class="container">
+      <div class="section-header-flex section-header fade-in">
+        <div>
+          <div class="section-label">Our Menu</div>
+          <h2 class="section-title">FEATURED PRODUCTS</h2>
+        </div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search dishes..." oninput="filterProducts()"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="products-filter fade-in" id="product-filters">
+        <button class="filter-btn active" onclick="setFilter('all', this)">All Items</button>
+        <button class="filter-btn" onclick="setFilter('spicy', this)">🌶️ Spicy</button>
+        <button class="filter-btn" onclick="setFilter('best-seller', this)">⭐ Best Sellers</button>
+        <button class="filter-btn" onclick="setFilter('new', this)">✨ New Arrivals</button>
+        <button class="filter-btn" onclick="filterByPrice(0,15, this)">Under $15</button>
+        <button class="filter-btn" onclick="filterByPrice(15,999, this)">$15+</button>
+      </div>
+      <div class="products-grid" id="products-grid"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </section>
+
+  <!-- ==================== BEST SELLERS ==================== -->
+  <section class="section section-pt-0">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-label">Crowd Favorites</div>
+        <h2 class="section-title">BEST SELLERS</h2>
+        <div class="divider"></div>
+      </div>
+      <div class="products-grid" id="bestsellers-grid"></div>
+    </div>
+  </section>
+
+  <!-- ==================== COMBO DEALS ==================== -->
+  <section class="section combo-section-bg">
+    <div class="container">
+      <div class="section-header text-center">
+        <div class="section-label justify-center">Save More</div>
+        <h2 class="section-title">COMBO DEALS</h2>
+      </div>
+      <div class="combo-grid fade-in">
+        <div class="combo-card">
+          <span class="combo-emoji">🍜🥤</span>
+          <div class="combo-name">NOODLE + DRINK</div>
+          <div class="combo-desc">Any signature noodle dish paired with your choice of beverage</div>
+          <div class="combo-price-block">
+            <div class="combo-price">$17.99</div>
+            <div class="combo-original">$22.98</div>
+            <div class="combo-save">SAVE 22%</div>
+          </div>
+          <button class="btn btn-primary" onclick="requireLogin(addComboToCart, 'noodle-drink-combo')">Add to
+            Cart</button>
+        </div>
+        <div class="combo-card">
+          <span class="combo-emoji">🍕🥤🍟</span>
+          <div class="combo-name">PIZZA PARTY SET</div>
+          <div class="combo-desc">Shisa Spicy Pizza + Fries + 2 Drinks - perfect for sharing</div>
+          <div class="combo-price-block">
+            <div class="combo-price">$29.99</div>
+            <div class="combo-original">$38.97</div>
+            <div class="combo-save">SAVE 23%</div>
+          </div>
+          <button class="btn btn-primary" onclick="requireLogin(addComboToCart, 'pizza-party-combo')">Add to
+            Cart</button>
+        </div>
+        <div class="combo-card">
+          <span class="combo-emoji">🍜🍕🥤🍟</span>
+          <div class="combo-name">MEGA SHISA FEAST</div>
+          <div class="combo-desc">The ultimate ShisaFood experience - noodles, pizza, sides & drinks</div>
+          <div class="combo-price-block">
+            <div class="combo-price">$44.99</div>
+            <div class="combo-original">$59.96</div>
+            <div class="combo-save">SAVE 25%</div>
+          </div>
+          <button class="btn btn-primary" onclick="requireLogin(addComboToCart, 'mega-feast-combo')">Add to
+            Cart</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PROMOTIONS ==================== -->
+  <section id="promotions" class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-label">Hot Deals</div>
+        <h2 class="section-title">PROMOTIONS</h2>
+        <div class="divider"></div>
+        <p class="promo-lead">Use these exclusive codes at
+          checkout to unlock incredible savings on your order.</p>
+      </div>
+      <div class="promo-code-section fade-in">
+        <div class="promo-code-label">
+          AVAILABLE COUPON CODES</div>
+        <div class="promo-code-help">Click any code to copy it</div>
+        <div class="promo-codes-grid">
+          <div class="promo-code-card" onclick="copyCode('SHISA20')">
+            <div class="promo-code">SHISA20</div>
+            <div class="promo-value">20% OFF your order</div>
+            <div class="promo-desc-text">Min. order $20 - All items</div>
+          </div>
+          <div class="promo-code-card" onclick="copyCode('FIRE10')">
+            <div class="promo-code">FIRE10</div>
+            <div class="promo-value">$10 OFF orders $35+</div>
+            <div class="promo-desc-text">Noodles & Pizza only</div>
+          </div>
+          <div class="promo-code-card" onclick="copyCode('NEWBIE')">
+            <div class="promo-code">NEWBIE</div>
+            <div class="promo-value">FREE DELIVERY</div>
+            <div class="promo-desc-text">First-time customers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== REVIEWS ==================== -->
+  <section class="section reviews-section-bg">
+    <div class="container">
+      <div class="section-header text-center">
+        <div class="section-label justify-center">Testimonials</div>
+        <h2 class="section-title">WHAT THEY SAY</h2>
+      </div>
+      <div class="reviews-grid fade-in">
+        <div class="review-card">
+          <div class="review-quote">"</div>
+          <div class="review-text">The Volcano Noodles are absolutely insane. The spice level is real, the broth is
+            rich, and the portion is generous. ShisaFood never disappoints!</div>
+          <div class="stars">★★★★★</div>
+          <div class="reviewer reviewer-mt-16">
+            <div class="reviewer-avatar">M</div>
+            <div>
+              <div class="reviewer-name">Minh Tran</div>
+              <div class="reviewer-tag">🌶️ Spice Addict</div>
+            </div>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="review-quote">"</div>
+          <div class="review-text">Ordered the Shisa Special Pizza for my friends and they all loved it. The combination
+            of spicy sauce and crispy crust is next level. Will definitely order again!</div>
+          <div class="stars">★★★★★</div>
+          <div class="reviewer reviewer-mt-16">
+            <div class="reviewer-avatar">S</div>
+            <div>
+              <div class="reviewer-name">Sarah K.</div>
+              <div class="reviewer-tag">🍕 Pizza Lover</div>
+            </div>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="review-quote">"</div>
+          <div class="review-text">Fast delivery, fresh food, and the promo code saved me 20% on my first order. The
+            packaging is solid and everything arrived hot. 10/10 experience!</div>
+          <div class="stars">★★★★★</div>
+          <div class="reviewer reviewer-mt-16">
+            <div class="reviewer-avatar">A</div>
+            <div>
+              <div class="reviewer-name">Alex Nguyen</div>
+              <div class="reviewer-tag">🚀 New Customer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ABOUT ==================== -->
+  <section id="about" class="section">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-visual fade-in">
+          <div class="about-main-img">🔥</div>
+          <div class="about-side-img">👨‍🍳</div>
+          <div class="about-badge-float">
+            <div class="about-badge-num">5★</div>
+            <div class="about-badge-text">Rated</div>
+          </div>
+        </div>
+        <div class="fade-in">
+          <div class="section-label">Our Story</div>
+          <h2 class="section-title">THE FIRE BEHIND SHISAFOOD</h2>
+          <div class="divider"></div>
+          <p class="about-text about-text-gap-16">
+            ShisaFood was born from a passion for bold, authentic flavors that challenge the ordinary. Founded in 2019,
+            we specialize in crafting dishes that ignite your senses - from our signature volcano noodles to our
+            hand-tossed spicy pizzas.
+          </p>
+          <p class="about-text about-text-gap-32">
+            Every recipe is carefully developed by our team of chefs who believe great food should be adventurous,
+            unapologetic, and above all - delicious.
+          </p>
+          <div class="about-features">
+            <div class="about-feature">
+              <div class="about-feature-icon">🌶️</div>
+              <div>
+                <div class="about-feature-title">Premium Spices</div>
+                <div class="about-feature-text">Sourced from the finest chili farms worldwide</div>
+              </div>
+            </div>
+            <div class="about-feature">
+              <div class="about-feature-icon">🚀</div>
+              <div>
+                <div class="about-feature-title">Fast Delivery</div>
+                <div class="about-feature-text">Hot food at your door in 30 minutes or less</div>
+              </div>
+            </div>
+            <div class="about-feature">
+              <div class="about-feature-icon">🌱</div>
+              <div>
+                <div class="about-feature-title">Fresh Ingredients</div>
+                <div class="about-feature-text">Daily sourced, zero compromises</div>
+              </div>
+            </div>
+            <div class="about-feature">
+              <div class="about-feature-icon">♻️</div>
+              <div>
+                <div class="about-feature-title">Eco Packaging</div>
+                <div class="about-feature-text">100% recyclable and sustainable packaging</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">SHISA<span>FOOD</span></div>
+          <p class="footer-tagline">Bold flavors, explosive spice, unforgettable experiences. ShisaFood - where every
+            meal is an adventure.</p>
+          <div class="footer-social">
+            <a href="#" class="social-icon" title="Facebook">📘</a>
+            <a href="#" class="social-icon" title="Instagram">📸</a>
+            <a href="#" class="social-icon" title="TikTok">🎵</a>
+            <a href="#" class="social-icon" title="Twitter">🐦</a>
+            <a href="#" class="social-icon" title="YouTube">▶️</a>
+          </div>
+          <div class="footer-map">
+            <div id="footer-map-canvas" class="footer-map-canvas"></div>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Quick Links</div>
+          <div class="footer-links">
+            <a href="#hero" class="footer-link">→ Home</a>
+            <a href="#menu" class="footer-link">→ Menu</a>
+            <a href="#promotions" class="footer-link">→ Promotions</a>
+            <a href="#about" class="footer-link">→ About Us</a>
+            <a href="/customer" class="footer-link">→ Customer Portal</a>
+            <a href="/shipper/workspace" class="footer-link">→ Shipper Workspace</a>
+            <a href="/admin/dashboard" class="footer-link">→ Admin Dashboard</a>
+            <a href="#" onclick="openModal('login-modal')" class="footer-link">→ Login / Register</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Categories</div>
+          <div class="footer-links">
+            <a href="#menu" class="footer-link">🍜 Spicy Noodles</a>
+            <a href="#menu" class="footer-link">🍕 Pizza</a>
+            <a href="#menu" class="footer-link">🥤 Beverages</a>
+            <a href="#menu" class="footer-link">🍟 Side Dishes</a>
+            <a href="#menu" class="footer-link">🎁 Combo Deals</a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Contact Us</div>
+          <div class="footer-info">
+            <div class="footer-info-item"><span class="info-icon">📍</span><span>123 Fire Street, Hoan Kiem, Hanoi,
+                Vietnam</span></div>
+            <div class="footer-info-item"><span class="info-icon">📞</span><span>+84 24 1234 5678</span></div>
+            <div class="footer-info-item"><span class="info-icon">✉️</span><span>hello@shisafood.vn</span></div>
+            <div class="footer-info-item"><span class="info-icon">🕐</span><span>Mon-Sun: 10:00 AM - 11:00 PM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="footer-bottom">
+        <div class="footer-bottom-text">© 2025 ShisaFood. All rights reserved. Made with 🔥</div>
+        <div class="footer-bottom-links">
+          <a href="#" class="footer-bottom-link">Privacy Policy</a>
+          <a href="#" class="footer-bottom-link">Terms of Service</a>
+          <a href="#" class="footer-bottom-link">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- LOGIN MODAL -->
+  <div class="modal-overlay hidden" id="login-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title-lg">WELCOME BACK</div>
+          <div class="modal-subtitle">Sign in to your ShisaFood account</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="social-grid-two">
+          <button class="social-btn" onclick="socialLogin('Google')">🔵 Google</button>
+          <button class="social-btn" onclick="socialLogin('Facebook')">📘 Facebook</button>
+        </div>
+        <div class="modal-divider-row">
+          <div class="modal-divider-line"></div>
+          <span class="modal-divider-text">or sign in with email</span>
+          <div class="modal-divider-line"></div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" class="form-control" id="login-email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" class="form-control" id="login-password" placeholder="••••••••">
+        </div>
+        <div class="modal-forgot-wrap">
+          <a href="#" class="modal-link-red">Forgot password?</a>
+        </div>
+        <button class="btn btn-primary btn-block-lg" onclick="login()">SIGN IN</button>
+        <div class="modal-footnote">
+          Don't have an account? <a href="#" class="modal-link-red"
+            onclick="switchModal('login-modal','register-modal')">Sign up</a>
+        </div>
+        <div class="modal-footnote-small">
+          <em>Demo admin: admin@shisa.com / admin123</em>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER MODAL -->
+  <div class="modal-overlay hidden" id="register-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title-lg">JOIN SHISAFOOD</div>
+          <div class="modal-subtitle">Create your account and start ordering</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" class="form-control" id="reg-first" placeholder="John">
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" class="form-control" id="reg-last" placeholder="Doe">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" class="form-control" id="reg-email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" class="form-control" id="reg-phone" placeholder="+84 xxx xxx xxx">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" class="form-control" id="reg-pass" placeholder="Minimum 8 characters">
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" class="form-control" id="reg-confirm" placeholder="Repeat password">
+        </div>
+        <button class="btn btn-primary btn-block-lg" onclick="register()">CREATE ACCOUNT</button>
+        <div class="modal-footnote mt-16">
+          Already have an account? <a href="#" class="modal-link-red"
+            onclick="switchModal('register-modal','login-modal')">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="modal-overlay hidden modal-large" id="product-modal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <div class="modal-title-md" id="modal-product-name">Product Name</div>
+        <button class="modal-close" onclick="closeModal('product-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="product-detail-grid">
+          <div>
+            <div class="product-detail-img" id="modal-product-img">🍜</div>
+            <div class="product-tags-row" id="modal-product-tags"></div>
+          </div>
+          <div>
+            <div class="modal-muted-sm" id="modal-product-cat">Category</div>
+            <div class="stars" id="modal-product-stars">★★★★★</div>
+            <div class="product-detail-price" id="modal-product-price">$0.00</div>
+            <div class="product-detail-desc" id="modal-product-desc">Description</div>
+            <div class="qty-selector">
+              <label>Quantity</label>
+              <div class="qty-control">
+                <button onclick="changeDetailQty(-1)">−</button>
+                <span id="detail-qty">1</span>
+                <button onclick="changeDetailQty(1)">+</button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block-lg mb-12" id="modal-add-cart" onclick="addFromModal()">🛒 ADD TO
+              CART</button>
+            <div class="modal-footnote modal-footnote-compact" id="modal-availability"></div>
+          </div>
+        </div>
+        <div class="product-review-section">
+          <div class="modal-title-md mb-16">CUSTOMER REVIEWS</div>
+          <div id="product-reviews-list"></div>
+          <div class="review-form" id="review-form-section">
+            <div class="review-prompt-label">Write a Review</div>
+            <div class="star-select" id="star-selector">
+              <span onclick="setReviewStar(1)">★</span>
+              <span onclick="setReviewStar(2)">★</span>
+              <span onclick="setReviewStar(3)">★</span>
+              <span onclick="setReviewStar(4)">★</span>
+              <span onclick="setReviewStar(5)">★</span>
+            </div>
+            <textarea class="form-control review-textarea" id="review-text" placeholder="Share your experience..."
+              rows="3"></textarea>
+            <button class="btn btn-primary btn-submit-sm" onclick="submitReview()">Submit Review</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div class="modal-overlay hidden" id="checkout-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title-checkout">CHECKOUT</div>
+        <button class="modal-close" onclick="closeModal('checkout-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="checkout-steps">
+          <div class="checkout-step active" id="step1-indicator">
+            <div class="step-num">1</div><span>Shipping</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="checkout-step" id="step2-indicator">
+            <div class="step-num">2</div><span>Payment</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="checkout-step" id="step3-indicator">
+            <div class="step-num">3</div><span>Confirm</span>
+          </div>
+        </div>
+        <div id="checkout-step1">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" class="form-control" id="ship-first" placeholder="John">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" class="form-control" id="ship-last" placeholder="Doe">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" class="form-control" id="ship-phone" placeholder="+84 xxx xxx xxx">
+          </div>
+          <div class="form-group mb-16">
+            <label class="form-label-premium">Delivery Address</label>
+            <div id="geocoder-container" class="mb-12"></div>
+            <div id="checkout-map"
+              style="width:100%; height:220px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            </div>
+            <input type="hidden" id="ship-address">
+            <input type="hidden" id="ship-city">
+            <input type="hidden" id="ship-lat">
+            <input type="hidden" id="ship-lng">
+          </div>
+          <div class="form-group mb-20">
+            <label class="form-label-premium">Delivery Notes (optional)</label>
+            <input type="text" class="form-control" id="ship-notes" placeholder="Gate code, apartment number, etc.">
+          </div>
+          <button class="btn btn-primary checkout-continue-btn" onclick="goCheckoutStep(2)">CONTINUE TO PAYMENT
+            →</button>
+        </div>
+        <div id="checkout-step2" class="is-hidden">
+          <div class="payment-method-title">Select Payment Method</div>
+          <div class="payment-methods">
+            <div class="payment-method selected" id="pay-cod" onclick="selectPayment('cod')">
+              <div class="payment-icon">💵</div>
+              <div class="payment-name">CASH ON DELIVERY</div>
+            </div>
+            <div class="payment-method" id="pay-card" onclick="selectPayment('card')">
+              <div class="payment-icon">💳</div>
+              <div class="payment-name">CREDIT CARD</div>
+            </div>
+            <div class="payment-method" id="pay-momo" onclick="selectPayment('momo')">
+              <div class="payment-icon">📱</div>
+              <div class="payment-name">MOMO WALLET</div>
+            </div>
+            <div class="payment-method" id="pay-bank" onclick="selectPayment('bank')">
+              <div class="payment-icon">🏦</div>
+              <div class="payment-name">BANK TRANSFER</div>
+            </div>
+          </div>
+          <div id="card-fields" class="is-hidden">
+            <div class="form-group"><label>Card Number</label><input type="text" class="form-control"
+                placeholder="1234 5678 9012 3456" maxlength="19"></div>
+            <div class="form-row">
+              <div class="form-group"><label>Expiry</label><input type="text" class="form-control" placeholder="MM/YY">
+              </div>
+              <div class="form-group"><label>CVV</label><input type="text" class="form-control" placeholder="123"></div>
+            </div>
+          </div>
+          <div class="checkout-summary-box">
+            <div class="cart-total-row"><span>Subtotal</span><span id="co-subtotal"></span></div>
+            <div class="cart-total-row"><span>Delivery</span><span id="co-delivery">$0.00</span></div>
+            <div class="cart-total-row total"><span>TOTAL</span><span class="price" id="co-total"></span></div>
+          </div>
+          <div class="checkout-action-row">
+            <button class="btn btn-outline checkout-back-btn" onclick="goCheckoutStep(1)">← Back</button>
+            <button class="btn btn-primary checkout-place-btn" onclick="goCheckoutStep(3)">PLACE ORDER →</button>
+          </div>
+        </div>
+        <div id="checkout-step3" class="is-hidden text-center">
+          <div class="checkout-success-icon">🎉</div>
+          <div class="checkout-success-title">ORDER PLACED!</div>
+          <div class="checkout-success-text">Your order <strong id="order-id-display" class="text-red-light"></strong>
+            has been confirmed.</div>
+          <div class="checkout-success-eta">Estimated delivery: <strong class="text-white">25-35 minutes</strong></div>
+          <button class="btn btn-primary checkout-browse-btn" onclick="closeModal('checkout-modal')">CONTINUE
+            BROWSING</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS MODAL -->
+  <div class="modal-overlay hidden" id="orders-modal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <div class="modal-title-checkout">MY ORDERS</div>
+        <button class="modal-close" onclick="closeModal('orders-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="orders-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN MODAL (product add/edit) -->
+  <div class="modal-overlay hidden" id="admin-product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title-checkout" id="admin-product-modal-title">ADD PRODUCT</div>
+        <button class="modal-close" onclick="closeModal('admin-product-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-product-id">
+        <div class="form-group"><label>Product Name</label><input type="text" class="form-control" id="prod-name"
+            placeholder="e.g. Volcano Noodles"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" id="prod-cat" title="Product category">
+              <option value="noodles">Noodles</option>
+              <option value="pizza">Pizza</option>
+              <option value="beverages">Beverages</option>
+              <option value="sides">Sides</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Price ($)</label>
+            <input type="number" class="form-control" id="prod-price" placeholder="12.99" step="0.01">
+          </div>
+        </div>
+        <div class="form-group"><label>Description</label><textarea class="form-control" id="prod-desc" rows="3"
+            placeholder="Describe the dish..."></textarea></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Emoji / Image</label>
+            <input type="text" class="form-control" id="prod-emoji" placeholder="🍜">
+          </div>
+          <div class="form-group">
+            <label>Availability</label>
+            <select class="form-control" id="prod-avail" title="Product availability">
+              <option value="true">Available</option>
+              <option value="false">Unavailable</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tags (comma-separated)</label>
+          <input type="text" class="form-control" id="prod-tags" placeholder="spicy, best-seller, new">
+        </div>
+        <button class="btn btn-primary checkout-place-btn mt-8" onclick="saveProduct()">SAVE PRODUCT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN DASHBOARD ==================== -->
+  <div id="admin-dashboard" class="is-hidden admin-dashboard-wrap">
+    <div class="admin-grid">
+      <div class="admin-sidebar">
+        <div class="admin-sidebar-head">
+          <div class="admin-panel-title">ADMIN PANEL</div>
+          <div class="admin-panel-subtitle" id="admin-user-name">ShisaFood</div>
+        </div>
+        <div class="admin-sidebar-section">
+          <div class="admin-sidebar-label">Overview</div>
+          <div class="admin-nav-item active" onclick="showAdminPanel('dashboard')"><span
+              class="admin-nav-icon">📊</span>Dashboard</div>
+        </div>
+        <div class="admin-sidebar-section">
+          <div class="admin-sidebar-label">Manage</div>
+          <div class="admin-nav-item" onclick="showAdminPanel('products')"><span
+              class="admin-nav-icon">🍜</span>Products</div>
+          <div class="admin-nav-item" onclick="showAdminPanel('categories')"><span
+              class="admin-nav-icon">📂</span>Categories</div>
+          <div class="admin-nav-item" onclick="showAdminPanel('orders')"><span class="admin-nav-icon">📦</span>Orders
+          </div>
+          <div class="admin-nav-item" onclick="showAdminPanel('users')"><span class="admin-nav-icon">👥</span>Users
+          </div>
+          <div class="admin-nav-item" onclick="showAdminPanel('promos')"><span
+              class="admin-nav-icon">🎉</span>Promotions</div>
+        </div>
+        <div class="admin-sidebar-section admin-sidebar-bottom">
+          <div class="admin-nav-item" onclick="closeAdminDashboard()"><span class="admin-nav-icon">↩️</span>Back to Site
+          </div>
+          <div class="admin-nav-item admin-logout-link" onclick="logout()"><span class="admin-nav-icon">🚪</span>Logout
+          </div>
+        </div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-panel active" id="panel-dashboard">
+          <div class="admin-topbar">
+            <div>
+              <div class="admin-page-title">DASHBOARD</div>
+              <div class="admin-page-subtitle">Welcome back, Admin 👋</div>
+            </div>
+            <div class="admin-page-subtitle" id="admin-date"></div>
+          </div>
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+              <div class="admin-stat-label">Total Revenue</div>
+              <div class="admin-stat-value">$12,840</div>
+              <div class="admin-stat-change">↑ 12% this month</div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-label">Total Orders</div>
+              <div class="admin-stat-value" id="admin-orders-count">0</div>
+              <div class="admin-stat-change">↑ 8% this week</div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-label">Products</div>
+              <div class="admin-stat-value" id="admin-products-count">0</div>
+              <div class="admin-stat-change">↑ 3 new this week</div>
+            </div>
+            <div class="admin-stat-card">
+              <div class="admin-stat-label">Customers</div>
+              <div class="admin-stat-value" id="admin-users-count">0</div>
+              <div class="admin-stat-change">↑ 24 new this month</div>
+            </div>
+          </div>
+          <div class="admin-table-section">
+            <div class="admin-table-header">
+              <div class="admin-table-title">Recent Orders</div>
+            </div>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="admin-recent-orders"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="panel-products">
+          <div class="admin-topbar">
+            <div class="admin-page-title">PRODUCTS</div>
+            <button class="btn btn-primary" onclick="openAddProduct()">+ Add Product</button>
+          </div>
+          <div class="admin-table-section">
+            <div class="admin-table-header">
+              <div class="admin-table-title">All Products</div>
+              <input type="text" class="form-control admin-search-input" placeholder="Search products..."
+                oninput="filterAdminProducts(this.value)">
+            </div>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Tags</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-products-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="panel-categories">
+          <div class="admin-topbar">
+            <div class="admin-page-title">CATEGORIES</div>
+            <button class="btn btn-primary" onclick="addCategory()">+ Add Category</button>
+          </div>
+          <div class="admin-table-section">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Icon</th>
+                  <th>Name</th>
+                  <th>Products</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-categories-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="panel-orders">
+          <div class="admin-topbar">
+            <div class="admin-page-title">ORDERS</div>
+          </div>
+          <div class="admin-table-section">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-orders-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="panel-users">
+          <div class="admin-topbar">
+            <div class="admin-page-title">USERS</div>
+          </div>
+          <div class="admin-table-section">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Orders</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="panel-promos">
+          <div class="admin-topbar">
+            <div class="admin-page-title">PROMOTIONS</div>
+            <button class="btn btn-primary" onclick="showToast('Promo creation coming soon!','info')">+ Add
+              Promo</button>
+          </div>
+          <div class="admin-table-section">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount</th>
+                  <th>Min. Order</th>
+                  <th>Uses</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-promos-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/static/js/supabase-web.js"></script>
+  <script src="/static/js/api-client.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+
+</html>

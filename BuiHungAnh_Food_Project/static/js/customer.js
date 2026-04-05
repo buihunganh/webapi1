@@ -24,6 +24,12 @@ let deliveryPagination = {
 };
 let deliveryView = 'active';
 
+const MAPBOX_ACCESS_TOKEN = window.MAPBOX_ACCESS_TOKEN || '';
+const STORE_COORDS = { lat: 51.5033, lng: -0.1182 };
+let trackerMap = null;
+let trackerMarker = null;
+let activeTrackingOrderId = null;
+
 const ORDER_STATUS = {
     delivered: { label: '✅ Completed', cls: 'sbadge-success' },
     shipping: { label: '🚚 Delivering', cls: 'sbadge-info' },
@@ -102,13 +108,20 @@ async function loadOrdersFromAPI() {
                 const totalValue = Number(order.totalamount ?? order.subtotal ?? 0);
                 return {
                     id: formatOrderDisplayId(order.orderid ?? order.id),
+                    dbId: order.orderid ?? order.id,
                     total: Number.isFinite(totalValue) ? totalValue : 0,
                     date: orderDate ? orderDate.toLocaleString() : '-',
                     sortKey: orderDate ? orderDate.getTime() : 0,
                     status,
-                    eta: status === 'delivered' ? 'Delivered' : 'Processing',
+                    eta: order.estimated_delivery_time || (status === 'delivered' ? 'Delivered' : 'Processing'),
+                    lat: Number(order.latitude),
+                    lng: Number(order.longitude),
+                    shipper_lat: Number(order.shipper_lat),
+                    shipper_lng: Number(order.shipper_lng),
                 };
             });
+
+        checkActiveTracking();
     } catch (err) {
         console.warn('Failed to load customer orders:', err);
         toast(`Không thể tải đơn hàng: ${err.message || err}`, 'info');
@@ -253,6 +266,96 @@ function renderDeliverySections() {
         : renderEmpty('No delivered orders yet.');
 
     renderPaginationControls('delivery-history-pagination', historyPageData.page, historyPageData.totalPages, 'changeDeliveryPage("history", -1)', 'changeDeliveryPage("history", 1)');
+}
+
+function checkActiveTracking() {
+    const shippingOrder = CUSTOMER_STATE.orders.find(o => o.status === 'shipping');
+    const container = document.getElementById('customer-delivery-tracker');
+
+    if (shippingOrder) {
+        if (container) container.classList.remove('is-hidden');
+        initTrackerMap(shippingOrder);
+    } else {
+        if (container) container.classList.add('is-hidden');
+        activeTrackingOrderId = null;
+    }
+}
+
+function initTrackerMap(order) {
+    if (activeTrackingOrderId === order.dbId) {
+        updateTrackerMarker(order);
+        return;
+    }
+    activeTrackingOrderId = order.dbId;
+
+    if (!window.mapboxgl) return;
+    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+    if (!trackerMap) {
+        trackerMap = new mapboxgl.Map({
+            container: 'customer-tracker-map',
+            style: 'mapbox://styles/mapbox/dark-v11',
+            center: [order.lng || STORE_COORDS.lng, order.lat || STORE_COORDS.lat],
+            zoom: 14
+        });
+
+        // 1. Store Marker (🏮)
+        const storeEl = document.createElement('div');
+        storeEl.className = 'store-marker';
+        storeEl.style.fontSize = '30px';
+        storeEl.innerHTML = '🏬';
+        new mapboxgl.Marker(storeEl)
+            .setLngLat([STORE_COORDS.lng, STORE_COORDS.lat])
+            .addTo(trackerMap);
+
+        // 2. House Marker (🏠) + ETA Label
+        const houseEl = document.createElement('div');
+        houseEl.style.textAlign = 'center';
+        houseEl.innerHTML = `
+            <div style="background:var(--red);color:white;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-bottom:4px;white-space:nowrap">
+                ETA: ${order.eta}
+            </div>
+            <div style="font-size:30px">🏠</div>
+        `;
+        new mapboxgl.Marker(houseEl)
+            .setLngLat([order.lng, order.lat])
+            .addTo(trackerMap);
+
+
+
+        // 4. Shipper Marker (🛵)
+        const el = document.createElement('div');
+        el.className = 'shipper-marker';
+        el.innerHTML = '🛵';
+        el.style.fontSize = '32px';
+        el.style.zIndex = '5';
+
+        trackerMarker = new mapboxgl.Marker(el)
+            .setLngLat([order.shipper_lng || STORE_COORDS.lng, order.shipper_lat || STORE_COORDS.lat])
+            .addTo(trackerMap);
+
+        const bounds = new mapboxgl.LngLatBounds()
+            .extend([STORE_COORDS.lng, STORE_COORDS.lat])
+            .extend([order.lng, order.lat]);
+        trackerMap.fitBounds(bounds, { padding: 50 });
+    } else {
+        updateTrackerMarker(order);
+    }
+}
+
+
+
+function updateTrackerMarker(order) {
+    if (!trackerMarker || !order.shipper_lat) return;
+    trackerMarker.setLngLat([order.shipper_lng, order.shipper_lat]);
+
+    // Auto-center (Lock screen to shipper)
+    if (trackerMap) {
+        trackerMap.easeTo({
+            center: [order.shipper_lng, order.shipper_lat],
+            duration: 2000
+        });
+    }
 }
 
 function changeDeliveryPage(section, delta) {
@@ -414,21 +517,61 @@ async function initCustomerRealtime() {
         return;
     }
     try {
-        customerRealtimeUnsub = await window.SupabaseWeb.subscribeOrders(async () => {
-            await refreshCustomerOrders(true);
-        });
-        stopCustomerOrdersPolling();
-    } catch (err) {
-        toast(`Realtime tạm thời không khả dụng: ${err.message || err}`, 'info');
-        startCustomerOrdersPolling();
-    }
-}
+        await refreshCustomerOrders(false);
+        initRealtimeSubscription();
+    } catch (_) { }
 
-function startCustomerOrdersPolling() {
-    if (customerOrdersPollingHandle) return;
+    renderWishlist();
+    renderAddresses();
+    renderProfile();
+
     customerOrdersPollingHandle = setInterval(() => {
         refreshCustomerOrders(true);
     }, CUSTOMER_POLLING_INTERVAL_MS);
+}
+
+async function initRealtimeSubscription() {
+    if (!window.SupabaseWeb || !CUSTOMER_STATE.user.id) return;
+    const sb = window.SupabaseWeb.getClient();
+    if (!sb) return;
+
+    customerRealtimeUnsub = sb
+        .channel('public:orders')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `customerid=eq.${CUSTOMER_STATE.user.id}` }, (payload) => {
+            console.log('Real-time order update:', payload.new);
+            handleRealtimeUpdate(payload.new);
+        })
+        .subscribe();
+}
+
+function handleRealtimeUpdate(newOrder) {
+    // Check if status changed
+    const existingIdx = CUSTOMER_STATE.orders.findIndex(o => o.dbId === newOrder.orderid);
+    if (existingIdx !== -1) {
+        const oldStatus = CUSTOMER_STATE.orders[existingIdx].status;
+        const newStatus = normalizeOrderStatus(newOrder.orderstatus);
+
+        if (oldStatus !== newStatus) {
+            toast(`Order ${formatOrderDisplayId(newOrder.orderid)} is now ${newStatus}!`, 'success');
+        }
+
+        // Update state
+        CUSTOMER_STATE.orders[existingIdx] = {
+            ...CUSTOMER_STATE.orders[existingIdx],
+            status: newStatus,
+            shipper_lat: Number(newOrder.shipper_lat),
+            shipper_lng: Number(newOrder.shipper_lng),
+            eta: newOrder.estimated_delivery_time || CUSTOMER_STATE.orders[existingIdx].eta
+        };
+
+        // 🔥 CRITICAL: Update the map tracker marker immediately
+        if (newStatus === 'shipping') {
+            updateTrackerMarker(CUSTOMER_STATE.orders[existingIdx]);
+        }
+
+        renderDeliverySections();
+        checkActiveTracking();
+    }
 }
 
 function stopCustomerOrdersPolling() {
