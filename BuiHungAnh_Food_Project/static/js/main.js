@@ -57,10 +57,10 @@ const PROMOS = {
 };
 
 const CATEGORIES = [
-  { id: 'noodles', name: 'Noodles', icon: '??', desc: 'Spicy Noodles' },
-  { id: 'pizza', name: 'Pizza', icon: '??', desc: 'Signature Pizzas' },
-  { id: 'beverages', name: 'Beverages', icon: '??', desc: 'Drinks & More' },
-  { id: 'sides', name: 'Sides', icon: '??', desc: 'Side Dishes' },
+  { id: 'noodles', name: 'Noodles', icon: '🍜', desc: 'Spicy Noodles' },
+  { id: 'pizza', name: 'Pizza', icon: '🍕', desc: 'Signature Pizzas' },
+  { id: 'beverages', name: 'Beverages', icon: '🥤', desc: 'Drinks & More' },
+  { id: 'sides', name: 'Sides', icon: '🥟', desc: 'Side Dishes' },
 ];
 
 let PRODUCTS = []; // Will be loaded from API
@@ -170,7 +170,7 @@ async function loadProductsFromAPI() {
         name: p.productname || 'Unnamed product',
         cat: p.categoryid === 1 ? 'noodles' : p.categoryid === 2 ? 'pizza' : p.categoryid === 3 ? 'beverages' : 'sides',
         price: parseFloat(p.price || 0),
-        emoji: '??', // Default emoji
+        emoji: '🍲', // Default emoji
         desc: p.description || '',
         tags: [],
         available: p.isactive !== false,
@@ -180,7 +180,7 @@ async function loadProductsFromAPI() {
       console.log('? Loaded ' + PRODUCTS.length + ' products from API');
     }
   } catch (err) {
-    console.warn('?? Failed to load products from API, using hardcoded data:', err);
+    console.warn('[WARN] Failed to load products from API, using hardcoded data:', err);
   }
 }
 
@@ -203,7 +203,7 @@ async function loadUsersFromAPI() {
       console.log('? Loaded ' + USERS.length + ' users from API');
     }
   } catch (err) {
-    console.warn('?? Failed to load users from API, using hardcoded data:', err);
+    console.warn('[WARN] Failed to load users from API, using hardcoded data:', err);
   }
 }
 
@@ -214,7 +214,7 @@ async function loadOrdersFromAPI() {
       ORDERS = apiOrders.map(mapApiOrderToRow);
     }
   } catch (err) {
-    console.warn('?? Failed to load orders from API, using local data:', err);
+    console.warn('[WARN] Failed to load orders from API, using local data:', err);
   }
 }
 
@@ -223,14 +223,14 @@ function mapApiOrderToRow(row) {
     return {
       id: formatOrderDisplayId(Date.now()),
       customer: 'Customer',
-      items: '�',
+      items: '—',
       total: 0,
       status: 'pending',
       date: new Date().toLocaleString(),
     };
   }
   const customerInfo = row.customer || {};
-  const customerLabel = customerInfo.fullname || row.customername || customerInfo.name || `Customer #${row.customerid || '�'}`;
+  const customerLabel = customerInfo.fullname || row.customername || customerInfo.name || `Customer #${row.customerid || '—'}`;
   const status = (row.orderstatus || row.status || 'pending').toLowerCase();
   const itemsText = row.items_summary || row.notes || 'See details';
   let totalVal = 0;
@@ -256,10 +256,10 @@ async function checkAPIHealth() {
     const health = await APIClient.health();
     if (health.ok) {
       console.log('? API Server OK - Database: ' + health.database);
-      document.title = 'ShisaFood ?? [Connected to ' + health.database + ']';
+      document.title = 'ShisaFood ✅ [Connected to ' + health.database + ']';
     }
   } catch (err) {
-    console.warn('?? API Server not reachable:', err);
+    console.warn('[WARN] API Server not reachable:', err);
   }
 }
 
@@ -374,18 +374,18 @@ function renderProducts() {
   const page = filtered.slice(start, start + state.perPage);
   const grid = document.getElementById('products-grid');
   grid.innerHTML = page.length ? page.map(productCard).join('') : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray-text)">
-    <div style="font-size:48px;margin-bottom:12px">??</div>
+    <div style="font-size:48px;margin-bottom:12px">🛒</div>
     <div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No products found</div>
   </div>`;
   renderPagination(filtered.length);
 }
 
 function productCard(p) {
-  const tagHtml = p.tags.map(t => `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : t === 'new' ? 'new' : 'hot'}">${t === 'spicy' ? '???' : t === 'best-seller' ? '?' : '?'} ${t}</span>`).join('');
-  const stars = '?'.repeat(Math.round(p.rating)) + '?'.repeat(5 - Math.round(p.rating));
+  const tagHtml = p.tags.map(t => `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : t === 'new' ? 'new' : 'hot'}">${t === 'spicy' ? '🌶️' : t === 'best-seller' ? '⭐' : '✨'} ${t}</span>`).join('');
+  const stars = '⭐'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating));
   return `<div class="product-card" onclick="openProductDetail(${p.id})">
     ${p.tags.includes('best-seller') ? '<div class="badge">BEST SELLER</div>' : ''}
-    <div class="product-img">${p.emoji}${!p.available ? '<div class="availability-overlay">SOLD OUT</div>' : ''}</div>
+    <div class="product-img">${p.emoji || "🍲"}${!p.available ? '<div class="availability-overlay">SOLD OUT</div>' : ''}</div>
     <div class="product-body">
       <div class="product-tags">${tagHtml}</div>
       <div class="product-name">${p.name}</div>
@@ -395,8 +395,8 @@ function productCard(p) {
         <div class="product-rating"><span class="stars" style="font-size:11px">${stars}</span> ${p.rating}</div>
       </div>
       <div class="product-actions" onclick="event.stopPropagation()">
-        <button class="add-to-cart" onclick="requireLogin(addToCart, ${p.id})" ${!p.available ? 'disabled' : ''}>${p.available ? '?? Add to Cart' : 'Sold Out'}</button>
-        <button class="wishlist-btn" onclick="showToast('Added to wishlist!','info')">?</button>
+        <button class="add-to-cart" onclick="requireLogin(addToCart, ${p.id})" ${!p.available ? 'disabled' : ''}>${p.available ? '🛒 Add to Cart' : 'Sold Out'}</button>
+        <button class="wishlist-btn" onclick="showToast('Added to wishlist!','info')">❤️</button>
       </div>
     </div>
   </div>`;
@@ -411,11 +411,11 @@ function renderPagination(total) {
   const pages = Math.ceil(total / state.perPage);
   const pag = document.getElementById('pagination');
   if (pages <= 1) { pag.innerHTML = ''; return; }
-  let html = `<button class="page-btn" onclick="goPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled' : ''}>?</button>`;
+  let html = `<button class="page-btn" onclick="goPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled' : ''}>❤️</button>`;
   for (let i = 1; i <= pages; i++) {
     html += `<button class="page-btn ${i === state.currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
   }
-  html += `<button class="page-btn" onclick="goPage(${state.currentPage + 1})" ${state.currentPage === pages ? 'disabled' : ''}>?</button>`;
+  html += `<button class="page-btn" onclick="goPage(${state.currentPage + 1})" ${state.currentPage === pages ? 'disabled' : ''}>❤️</button>`;
   pag.innerHTML = html;
 }
 
@@ -496,7 +496,7 @@ function openProductDetail(id) {
   document.getElementById('modal-product-cat').textContent = CATEGORIES.find(c => c.id === p.cat)?.name || p.cat;
   document.getElementById('modal-product-price').textContent = `$${p.price.toFixed(2)}`;
   document.getElementById('modal-product-desc').textContent = p.desc;
-  document.getElementById('modal-product-stars').textContent = '?'.repeat(Math.round(p.rating));
+  document.getElementById('modal-product-stars').textContent = '⭐'.repeat(Math.round(p.rating));
   document.getElementById('detail-qty').textContent = '1';
   document.getElementById('modal-product-tags').innerHTML = p.tags.map(t => `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : 'new'}">${t}</span>`).join('');
   const avail = document.getElementById('modal-availability');
@@ -516,7 +516,7 @@ function addFromModal() {
   if (!state.currentProduct) return;
   requireLogin(() => {
     for (let i = 0; i < state.detailQty; i++) addToCart(state.currentProduct.id, true);
-    showToast(`${state.detailQty}x ${state.currentProduct.name} added to cart! ??`);
+    showToast(`${state.detailQty}x ${state.currentProduct.name} added to cart! ✅`);
     closeModal('product-modal');
   });
 }
@@ -550,7 +550,7 @@ function submitReview() {
   state.currentProduct.reviews.push(review);
   renderProductReviews(state.currentProduct);
   document.getElementById('review-text').value = '';
-  showToast('Review submitted! Thank you ??', 'success');
+  showToast('Review submitted! Thank you 💖', 'success');
 }
 
 // ========== AUTH ==========
@@ -642,7 +642,7 @@ function onLoginSuccess(showWelcomeToast = true) {
   document.getElementById('user-menu').style.display = 'flex';
   document.getElementById('cart-toggle').style.display = 'flex';
   document.getElementById('cart-count').classList.add('show');
-  document.getElementById('user-greeting').textContent = `Hello, ${state.currentUser.name.split(' ')[0]} ??`;
+  document.getElementById('user-greeting').textContent = `Hello, ${state.currentUser.name.split(' ')[0]} 👋`;
   localStorage.setItem(SESSION_STORAGE_KEY, (state.currentUser.email || '').toLowerCase());
   localStorage.setItem(SESSION_USER_KEY, JSON.stringify(state.currentUser));
   if (state.currentUser.role === 'admin') {
@@ -662,7 +662,7 @@ function onLoginSuccess(showWelcomeToast = true) {
   setTimeout(() => restoreMenuVisibility(true), 250);
   setTimeout(() => restoreMenuVisibility(true), 1000);
   if (showWelcomeToast) {
-    showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}! ??`, 'success');
+    showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}! 🎉`, 'success');
   }
 
   if (showWelcomeToast) {
@@ -701,7 +701,7 @@ async function logout() {
   document.getElementById('user-dropdown').style.display = 'none';
   updateCartCount();
   closeAdminDashboard();
-  showToast('Logged out successfully. See you soon! ??');
+  showToast('Logged out successfully. See you soon! 👋');
 }
 
 function toggleUserDropdown() {
@@ -735,7 +735,7 @@ function addToCart(productId, silent = false) {
   else state.cart.push({ id: productId, name: p.name, price: p.price, emoji: p.emoji, qty: 1 });
   updateCartCount();
   renderCartItems();
-  if (!silent) showToast(`${p.name} added to cart! ??`);
+  if (!silent) showToast(`${p.name} added to cart! ✅`);
 }
 
 function removeFromCart(id) {
@@ -761,7 +761,7 @@ function addComboToCart(comboId) {
   else state.cart.push({ id: 'combo-' + comboId, name: c.name, price: c.price, emoji: c.emoji, qty: 1 });
   updateCartCount();
   renderCartItems();
-  showToast(`${c.name} added! ??`);
+  showToast(`${c.name} added! ✅`);
   openCart();
 }
 
@@ -776,7 +776,7 @@ function renderCartItems() {
   const list = document.getElementById('cart-items-list');
   const footer = document.getElementById('cart-footer');
   if (!state.cart.length) {
-    list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">??</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">Your cart is empty</div><div style="font-size:14px;color:var(--gray-text);text-align:center">Add some fire to your order!</div></div>`;
+    list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">Your cart is empty</div><div style="font-size:14px;color:var(--gray-text);text-align:center">Add some fire to your order!</div></div>`;
     footer.style.display = 'none';
     return;
   }
@@ -793,7 +793,7 @@ function renderCartItems() {
           <span style="font-family:var(--font-cond);font-size:13px;font-weight:700;color:var(--red-light);margin-left:8px">$${(item.price * item.qty).toFixed(2)}</span>
         </div>
       </div>
-      <button class="remove-item" onclick="removeFromCart('${item.id}')">?</button>
+      <button class="remove-item" onclick="removeFromCart('${item.id}')">❤️</button>
     </div>`).join('');
   footer.style.display = 'block';
   updateCartTotals();
@@ -874,7 +874,7 @@ function applyPromo() {
   if (sub < promo.min) { showToast(`Minimum order $${promo.min} required`, 'error'); return; }
   state.promoApplied = { ...promo, code };
   updateCartTotals();
-  showToast(`Promo applied! ${promo.desc} ??`, 'success');
+  showToast(`Promo applied! ${promo.desc} 🎫`, 'success');
 }
 
 function openCart() {
@@ -924,7 +924,7 @@ function initCheckoutMap() {
   const storeEl = document.createElement('div');
   storeEl.className = 'store-marker';
   storeEl.style.fontSize = '32px';
-  storeEl.innerHTML = '??';
+  storeEl.innerHTML = '🏪';
 
   new mapboxgl.Marker(storeEl)
     .setLngLat([STORE_COORDS.lng, STORE_COORDS.lat])
@@ -1212,7 +1212,7 @@ async function placeOrder() {
     updateAdminStats();
     resetCheckoutForm();
     renderOrdersModal();
-    showToast('Order placed successfully! ??', 'success');
+    showToast('Order placed successfully! 🎉', 'success');
     return true;
   } catch (err) {
     console.error('Place order error:', err);
@@ -1232,7 +1232,7 @@ function renderOrdersModal() {
   const list = document.getElementById('orders-list');
   const orders = state.currentUser?.orders || [];
   if (!orders.length) {
-    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text)"><div style="font-size:48px;margin-bottom:12px">??</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No orders yet</div><p>Your order history will appear here.</p></div>`;
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text)"><div style="font-size:48px;margin-bottom:12px">🛒</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No orders yet</div><p>Your order history will appear here.</p></div>`;
     return;
   }
   list.innerHTML = orders.map(o => `
@@ -1253,7 +1253,7 @@ function renderOrdersModal() {
 function copyCode(code) {
   navigator.clipboard?.writeText(code).catch(() => { });
   document.getElementById('promo-input').value = code;
-  showToast(`Code "${code}" copied! Use it at checkout ??`, 'success');
+  showToast(`Code "${code}" copied! Use it at checkout 🎫`, 'success');
 }
 
 // ========== MODAL HELPERS ==========
@@ -1290,10 +1290,10 @@ function closeMobileMenu() {
 
 // ========== TOAST ==========
 function showToast(msg, type = 'default') {
-  const icons = { default: '??', success: '?', error: '?', info: '??' };
+  const icons = { default: '🔔', success: '✅', error: '❌', info: 'ℹ️' };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span class="toast-icon">${icons[type] || '??'}</span><span>${msg}</span>`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type] || '🔔'}</span><span>${msg}</span>`;
   document.getElementById('toast-container').appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
@@ -1439,7 +1439,7 @@ function renderAdminPromos() {
       <td><strong style="font-family:var(--font-display);letter-spacing:2px;color:var(--red-light)">${p.code}</strong></td>
       <td>${p.type === 'percent' ? p.value + '%' : p.type === 'flat' ? '$' + p.value : 'Free Delivery'}</td>
       <td>$${p.min}</td>
-      <td>�</td>
+      <td>—</td>
       <td><span class="status-badge status-active">Active</span></td>
       <td>
         <div class="action-btns">
@@ -1507,7 +1507,7 @@ function saveProduct() {
   const cat = document.getElementById('prod-cat').value;
   const price = parseFloat(document.getElementById('prod-price').value);
   const desc = document.getElementById('prod-desc').value.trim();
-  const emoji = document.getElementById('prod-emoji').value.trim() || '??';
+  const emoji = document.getElementById('prod-emoji').value.trim() || '🍲';
   const available = document.getElementById('prod-avail').value === 'true';
   const tags = document.getElementById('prod-tags').value.split(',').map(t => t.trim()).filter(Boolean);
   const editId = document.getElementById('edit-product-id').value;
@@ -1515,10 +1515,10 @@ function saveProduct() {
   if (editId) {
     const p = PRODUCTS.find(x => x.id === parseInt(editId));
     if (p) Object.assign(p, { name, cat, price, desc, emoji, available, tags });
-    showToast('Product updated! ?', 'success');
+    showToast('Product updated! ✅', 'success');
   } else {
     PRODUCTS.push({ id: PRODUCTS.length + 1, name, cat, price, desc, emoji, available, tags, rating: 4.5, reviews: [] });
-    showToast('Product added! ??', 'success');
+    showToast('Product added! ✅', 'success');
   }
   closeModal('admin-product-modal');
   renderAdminProducts();
