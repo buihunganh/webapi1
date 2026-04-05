@@ -1,9 +1,10 @@
 import os
+import traceback
 
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from models.supabase_client import get_supabase
-from models.products import get_all_products, update_product_image_url
+from models.products import get_all_products, update_product_image_url, update_product_metadata, create_product, delete_product
 from models.orders import create_order, get_all_orders, update_order_status
 from models.users import get_all_users, get_user_by_email, hash_password, insert_user, verify_password
 
@@ -88,6 +89,50 @@ def api_products():
     return jsonify({"count": len(data), "items": data}), 200
 
 
+@customer_bp.route('/api/products', methods=['POST'])
+def api_create_product():
+    """Create a new product."""
+    payload = request.get_json(silent=True) or {}
+    
+    # Validate required fields
+    productname = (payload.get('productname') or '').strip()
+    if not productname:
+        return jsonify({"ok": False, "error": "productname is required"}), 400
+    
+    price = payload.get('price')
+    try:
+        price = float(price) if price is not None else 0
+    except (TypeError, ValueError):
+        price = 0
+    
+    if price <= 0:
+        return jsonify({"ok": False, "error": "price must be greater than 0"}), 400
+    
+    try:
+        new_product = create_product(
+            name=productname,
+            price=price,
+            description=payload.get('description') or '',
+            category_id=payload.get('categoryid') or payload.get('category_id') or 1,
+            emoji=payload.get('emoji') or '',
+            tags=payload.get('tags') or '',
+            is_active=payload.get('isactive', True),
+            stock_quantity=payload.get('stockquantity', 100),
+        )
+        
+        if not new_product:
+            return jsonify({"ok": False, "error": "Failed to create product - got empty response"}), 500
+        
+        return jsonify({"ok": True, "product": new_product}), 201
+    except Exception as exc:
+        import sys
+        traceback.print_exc(file=sys.stdout)
+        error_msg = str(exc)
+        current_app.logger.error(f"Failed to create product: {error_msg}")
+        return jsonify({"ok": False, "error": f"Database error: {error_msg}"}), 500
+
+
+
 @customer_bp.route('/api/products/<int:product_id>/image', methods=['POST'])
 def api_update_product_image(product_id):
     """Persist uploaded product image URL."""
@@ -104,6 +149,78 @@ def api_update_product_image(product_id):
         return jsonify({"ok": True, "product_id": product_id, "image_url": image_url}), 200
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/products/<int:product_id>', methods=['PUT', 'POST'])
+def api_update_product_metadata(product_id):
+    """Update product metadata (name, price, description, category, emoji, tags, availability)."""
+    payload = request.get_json(silent=True) or {}
+    
+    # Map frontend field names to database field names
+    updates = {}
+    
+    if 'productname' in payload or 'name' in payload:
+        name = (payload.get('productname') or payload.get('name') or '').strip()
+        if name:
+            updates['name'] = name
+    
+    if 'price' in payload:
+        try:
+            price = float(payload.get('price'))
+            updates['price'] = price
+        except (TypeError, ValueError):
+            pass
+    
+    if 'description' in payload or 'desc' in payload:
+        desc = (payload.get('description') or payload.get('desc') or '').strip()
+        if desc:
+            updates['description'] = desc
+    
+    if 'categoryid' in payload or 'category_id' in payload or 'category' in payload:
+        cat = payload.get('categoryid') or payload.get('category_id') or payload.get('category')
+        if cat:
+            updates['category_id'] = cat
+    
+    if 'emoji' in payload:
+        emoji = (payload.get('emoji') or '').strip()
+        if emoji:
+            updates['emoji'] = emoji
+    
+    if 'tags' in payload:
+        tags = (payload.get('tags') or '').strip()
+        if tags:
+            updates['tags'] = tags
+    
+    if 'isactive' in payload or 'is_active' in payload:
+        # Avoid using "or" here, because "False or None" becomes None!
+        is_active = payload.get('isactive') if 'isactive' in payload else payload.get('is_active')
+        
+        if isinstance(is_active, str):
+            is_active = is_active.lower() in ('true', '1', 'yes')
+            
+        updates['is_active'] = bool(is_active)
+    
+    if not updates:
+        return jsonify({"ok": False, "error": "No valid fields to update"}), 400
+    
+    try:
+        ok = update_product_metadata(product_id, **updates)
+        if not ok:
+            return jsonify({"ok": False, "error": "Product not found or update failed"}), 404
+        return jsonify({"ok": True, "product_id": product_id, "updated_fields": updates}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+@customer_bp.route('/api/products/<int:product_id>', methods=['DELETE'])
+def api_delete_product(product_id):
+    """Delete a product. Maps to soft-delete if it's referenced in other tables."""
+    try:
+        success, message = delete_product(product_id)
+        if not success:
+            return jsonify({"ok": False, "error": message}), 400
+        return jsonify({"ok": True, "message": message}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @customer_bp.route('/api/orders', methods=['GET'])
