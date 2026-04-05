@@ -61,7 +61,9 @@ def get_users(limit: int = 500, role: Any = None):
     if role_id is not None:
         query = query.eq('roleid', role_id)
     response = query.execute()
-    return response.data or []
+    data = response.data or []
+    # Hide soft-deleted users from API returns
+    return [u for u in data if not (u.get('email') or '').startswith('del_')]
 
 def insert_user(full_name, email, password_hash, role_id=3, phone=None):
     """INSERT người dùng mới vào bảng Users"""
@@ -110,3 +112,40 @@ def set_user_active(user_id: int, is_active: bool):
     sb = get_supabase()
     response = sb.table('users').update({'isactive': is_active}).eq('userid', user_id).execute()
     return bool(response.data)
+
+def delete_user(user_id: int):
+    """Delete a user. Hard deletes if possible, otherwise soft-deletes."""
+    sb = get_supabase()
+    try:
+        # Try to clean up simple references first
+        try:
+            sb.table('useraddresses').delete().eq('userid', user_id).execute()
+        except: pass
+        try:
+            sb.table('productreviews').delete().eq('customerid', user_id).execute()
+        except: pass
+        
+        # Hard delete
+        resp = sb.table('users').delete().eq('userid', user_id).execute()
+        return True, "User deleted completely"
+    except Exception as e:
+        # Soft delete fallback to preserve order histories
+        try:
+            # Change email and phone to avoid unique constraints preventing a new user
+            p_data = sb.table('users').select('email, phone').eq('userid', user_id).execute().data
+            if p_data:
+                curr_email = p_data[0].get('email') or ''
+                curr_phone = p_data[0].get('phone') or ''
+                
+                new_email = f"del_{user_id}_{curr_email}" if not curr_email.startswith('del_') else curr_email
+                new_phone = f"0000{user_id}" if not str(curr_phone).startswith('0000') else curr_phone
+
+                sb.table('users').update({
+                    'isactive': False,
+                    'email': new_email[:120], 
+                    'phone': new_phone[:20]
+                }).eq('userid', user_id).execute()
+            
+            return True, "Tài khoản được xóa mềm (ẩn) vì có gắn với đơn hàng cũ!"
+        except Exception as e2:
+            return False, str(e2)

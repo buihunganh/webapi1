@@ -62,7 +62,6 @@ function initFooterMap() {
 
   footerMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
 }
-
 let isPlacingOrder = false;
 
 function formatOrderDisplayId(orderId) {
@@ -91,7 +90,7 @@ const CATEGORIES = [
   { id: 'noodles', name: 'Noodles', icon: '🍜', desc: 'Spicy Noodles' },
   { id: 'pizza', name: 'Pizza', icon: '🍕', desc: 'Signature Pizzas' },
   { id: 'beverages', name: 'Beverages', icon: '🥤', desc: 'Drinks & More' },
-  { id: 'sides', name: 'Sides', icon: '🥟', desc: 'Side Dishes' },
+  { id: 'sides', name: 'Sides', icon: '🍟', desc: 'Side Dishes' },
 ];
 
 let PRODUCTS = []; // Will be loaded from API
@@ -201,17 +200,18 @@ async function loadProductsFromAPI() {
         name: p.productname || 'Unnamed product',
         cat: p.categoryid === 1 ? 'noodles' : p.categoryid === 2 ? 'pizza' : p.categoryid === 3 ? 'beverages' : 'sides',
         price: parseFloat(p.price || 0),
-        emoji: '🍲', // Default emoji
+        emoji: p.emoji || '🍕', // Use emoji from database, fallback to default
         desc: p.description || '',
-        tags: [],
+        tags: p.tags ? (typeof p.tags === 'string' ? p.tags.split(',').map(t => t.trim()) : p.tags) : [],
         available: p.isactive !== false,
         rating: 4.5,
         reviews: [],
+        imageurl: p.imageurl || '', // Include image URL from database
       }));
-      console.log('? Loaded ' + PRODUCTS.length + ' products from API');
+      console.log('✅ Loaded ' + PRODUCTS.length + ' products from API');
     }
   } catch (err) {
-    console.warn('[WARN] Failed to load products from API, using hardcoded data:', err);
+    console.warn('⚠️ Failed to load products from API, using hardcoded data:', err);
   }
 }
 
@@ -229,12 +229,12 @@ async function loadUsersFromAPI() {
         email: u.email,
         role: u.roleid === 1 ? 'admin' : u.roleid === 2 ? 'shipper' : 'customer',
         orders: [],
-        joined: (u.createdat ? new Date(u.createdat).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+        joined: u.createdat ? new Date(u.createdat).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       }));
-      console.log('? Loaded ' + USERS.length + ' users from API');
+      console.log('✅ Loaded ' + USERS.length + ' users from API');
     }
   } catch (err) {
-    console.warn('[WARN] Failed to load users from API, using hardcoded data:', err);
+    console.warn('⚠️ Failed to load users from API, using hardcoded data:', err);
   }
 }
 
@@ -245,7 +245,7 @@ async function loadOrdersFromAPI() {
       ORDERS = apiOrders.map(mapApiOrderToRow);
     }
   } catch (err) {
-    console.warn('[WARN] Failed to load orders from API, using local data:', err);
+    console.warn('⚠️ Failed to load orders from API, using local data:', err);
   }
 }
 
@@ -286,11 +286,11 @@ async function checkAPIHealth() {
   try {
     const health = await APIClient.health();
     if (health.ok) {
-      console.log('? API Server OK - Database: ' + health.database);
+      console.log('✅ API Server OK - Database: ' + health.database);
       document.title = 'ShisaFood ✅ [Connected to ' + health.database + ']';
     }
   } catch (err) {
-    console.warn('[WARN] API Server not reachable:', err);
+    console.warn('⚠️ API Server not reachable:', err);
   }
 }
 
@@ -407,19 +407,32 @@ function renderProducts() {
   const start = (state.currentPage - 1) * state.perPage;
   const page = filtered.slice(start, start + state.perPage);
   const grid = document.getElementById('products-grid');
-  grid.innerHTML = page.length ? page.map(productCard).join('') : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray-text)">
-    <div style="font-size:48px;margin-bottom:12px">🛒</div>
+  grid.innerHTML = page.length
+    ? page.map(productCard).join('')
+    : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray-text)">
+    <div style="font-size:48px;margin-bottom:12px">🔍</div>
     <div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No products found</div>
   </div>`;
   renderPagination(filtered.length);
 }
 
 function productCard(p) {
-  const tagHtml = p.tags.map(t => `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : t === 'new' ? 'new' : 'hot'}">${t === 'spicy' ? '🌶️' : t === 'best-seller' ? '⭐' : '✨'} ${t}</span>`).join('');
-  const stars = '⭐'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating));
+  const tagHtml = p.tags
+    .map(
+      (t) =>
+        `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : t === 'new' ? 'new' : 'hot'}">${t === 'spicy' ? '🌶️' : t === 'best-seller' ? '⭐' : '✨'} ${t}</span>`,
+    )
+    .join('');
+  const stars = '★'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating));
+
+  // Display image URL if available, otherwise show emoji
+  const imageHtml = p.imageurl
+    ? `<img src="${p.imageurl}" alt="${p.name}" style="width:100%; height:100%; object-fit:cover;">`
+    : p.emoji;
+
   return `<div class="product-card" onclick="openProductDetail(${p.id})">
     ${p.tags.includes('best-seller') ? '<div class="badge">BEST SELLER</div>' : ''}
-    <div class="product-img">${p.emoji || "🍲"}${!p.available ? '<div class="availability-overlay">SOLD OUT</div>' : ''}</div>
+    <div class="product-img">${imageHtml}${!p.available ? '<div class="availability-overlay">SOLD OUT</div>' : ''}</div>
     <div class="product-body">
       <div class="product-tags">${tagHtml}</div>
       <div class="product-name">${p.name}</div>
@@ -430,26 +443,31 @@ function productCard(p) {
       </div>
       <div class="product-actions" onclick="event.stopPropagation()">
         <button class="add-to-cart" onclick="requireLogin(addToCart, ${p.id})" ${!p.available ? 'disabled' : ''}>${p.available ? '🛒 Add to Cart' : 'Sold Out'}</button>
-        <button class="wishlist-btn" onclick="showToast('Added to wishlist!','info')">❤️</button>
+        <button class="wishlist-btn" onclick="showToast('Added to wishlist!','info')">♡</button>
       </div>
     </div>
   </div>`;
 }
 
 function renderBestSellers() {
-  const bs = PRODUCTS.filter(p => p.tags.includes('best-seller')).slice(0, 4);
-  document.getElementById('bestsellers-grid').innerHTML = bs.map(productCard).join('');
+  const bs = PRODUCTS.filter((p) => p.tags.includes('best-seller')).slice(0, 4);
+  document.getElementById('bestsellers-grid').innerHTML = bs
+    .map(productCard)
+    .join('');
 }
 
 function renderPagination(total) {
   const pages = Math.ceil(total / state.perPage);
   const pag = document.getElementById('pagination');
-  if (pages <= 1) { pag.innerHTML = ''; return; }
-  let html = `<button class="page-btn" onclick="goPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled' : ''}>❤️</button>`;
+  if (pages <= 1) {
+    pag.innerHTML = '';
+    return;
+  }
+  let html = `<button class="page-btn" onclick="goPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled' : ''}>←</button>`;
   for (let i = 1; i <= pages; i++) {
     html += `<button class="page-btn ${i === state.currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
   }
-  html += `<button class="page-btn" onclick="goPage(${state.currentPage + 1})" ${state.currentPage === pages ? 'disabled' : ''}>❤️</button>`;
+  html += `<button class="page-btn" onclick="goPage(${state.currentPage + 1})" ${state.currentPage === pages ? 'disabled' : ''}>→</button>`;
   pag.innerHTML = html;
 }
 
@@ -462,17 +480,25 @@ function goPage(p) {
 function setFilter(filter, btn) {
   state.currentFilter = filter;
   state.currentPage = 1;
-  state.priceMin = 0; state.priceMax = 9999;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  state.priceMin = 0;
+  state.priceMax = 9999;
+  document
+    .querySelectorAll('.filter-btn')
+    .forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   renderProducts();
-  document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
+  document
+    .querySelectorAll('.category-card')
+    .forEach((c) => c.classList.remove('active'));
 }
 
 function filterByPrice(min, max, btn) {
-  state.priceMin = min; state.priceMax = max;
+  state.priceMin = min;
+  state.priceMax = max;
   state.currentPage = 1;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document
+    .querySelectorAll('.filter-btn')
+    .forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   renderProducts();
 }
@@ -498,7 +524,6 @@ function filterProducts() {
   state.currentPage = 1;
   renderProducts();
 }
-
 let lastAutoClearedSearch = '';
 
 function restoreMenuVisibility(force = false) {
@@ -519,37 +544,12 @@ function restoreMenuVisibility(force = false) {
   }
 }
 
-// ========== PRODUCT DETAIL ==========
-function openProductDetail(id) {
-  const p = PRODUCTS.find(x => x.id === id);
-  if (!p) return;
-  state.currentProduct = p;
-  state.detailQty = 1;
-  document.getElementById('modal-product-name').textContent = p.name;
-  document.getElementById('modal-product-img').textContent = p.emoji;
-  document.getElementById('modal-product-cat').textContent = CATEGORIES.find(c => c.id === p.cat)?.name || p.cat;
-  document.getElementById('modal-product-price').textContent = `$${p.price.toFixed(2)}`;
-  document.getElementById('modal-product-desc').textContent = p.desc;
-  document.getElementById('modal-product-stars').textContent = '⭐'.repeat(Math.round(p.rating));
-  document.getElementById('detail-qty').textContent = '1';
-  document.getElementById('modal-product-tags').innerHTML = p.tags.map(t => `<span class="tag tag-${t === 'spicy' ? 'spicy' : t === 'best-seller' ? 'best' : 'new'}">${t}</span>`).join('');
-  const avail = document.getElementById('modal-availability');
-  const addBtn = document.getElementById('modal-add-cart');
-  if (!p.available) { avail.textContent = '? Currently unavailable'; addBtn.disabled = true; }
-  else { avail.textContent = '? In Stock'; addBtn.disabled = false; }
-  renderProductReviews(p);
-  openModal('product-modal');
-}
-
-function changeDetailQty(d) {
-  state.detailQty = Math.max(1, state.detailQty + d);
-  document.getElementById('detail-qty').textContent = state.detailQty;
-}
-
 function addFromModal() {
   if (!state.currentProduct) return;
   requireLogin(() => {
-    for (let i = 0; i < state.detailQty; i++) addToCart(state.currentProduct.id, true);
+    for (let i = 0; i < state.detailQty; i++) {
+      addToCart(state.currentProduct.id, true);
+    }
     showToast(`${state.detailQty}x ${state.currentProduct.name} added to cart! ✅`);
     closeModal('product-modal');
   });
@@ -565,7 +565,7 @@ function renderProductReviews(p) {
     <div style="padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-family:var(--font-cond);font-size:14px;font-weight:700">${r.name}</div>
-        <div class="stars" style="font-size:12px">${'?'.repeat(r.stars)}</div>
+        <div class="stars" style="font-size:12px">${'★'.repeat(r.stars)}</div>
       </div>
       <div style="font-size:14px;color:rgba(255,255,255,0.7)">${r.text}</div>
     </div>`).join('');
@@ -573,25 +573,40 @@ function renderProductReviews(p) {
 
 function setReviewStar(n) {
   state.selectedReviewStar = n;
-  document.querySelectorAll('#star-selector span').forEach((s, i) => s.classList.toggle('active', i < n));
+  document
+    .querySelectorAll('#star-selector span')
+    .forEach((s, i) => s.classList.toggle('active', i < n));
 }
 
 function submitReview() {
-  if (!state.currentUser) { openModal('login-modal'); return; }
+  if (!state.currentUser) {
+    openModal('login-modal');
+    return;
+  }
   const text = document.getElementById('review-text').value.trim();
-  if (!text) { showToast('Please write a review text!', 'error'); return; }
-  const review = { name: state.currentUser.name, stars: state.selectedReviewStar, text };
+  if (!text) {
+    showToast('Please write a review text!', 'error');
+    return;
+  }
+  const review = {
+    name: state.currentUser.name,
+    stars: state.selectedReviewStar,
+    text,
+  };
   state.currentProduct.reviews.push(review);
   renderProductReviews(state.currentProduct);
   document.getElementById('review-text').value = '';
-  showToast('Review submitted! Thank you 💖', 'success');
+  showToast('Review submitted! Thank you 🌟', 'success');
 }
 
 // ========== AUTH ==========
 async function login() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass = document.getElementById('login-password').value;
-  if (!email || !pass) { showToast('Please fill in all fields', 'error'); return; }
+  if (!email || !pass) {
+    showToast('Please fill in all fields', 'error');
+    return;
+  }
 
   if (window.SupabaseWeb) {
     try {
@@ -628,7 +643,14 @@ function socialLogin(provider) {
     window.location.href = getAppBaseUrl() + '/login/google';
     return;
   }
-  const fakeUser = { id: Date.now(), name: provider + ' User', email: provider.toLowerCase() + '@social.com', role: 'customer', orders: [], joined: new Date().toISOString().split('T')[0] };
+  const fakeUser = {
+    id: Date.now(),
+    name: provider + ' User',
+    email: provider.toLowerCase() + '@social.com',
+    role: 'customer',
+    orders: [],
+    joined: new Date().toISOString().split('T')[0],
+  };
   USERS.push(fakeUser);
   saveUsersToStorage();
   state.currentUser = fakeUser;
@@ -643,9 +665,18 @@ async function register() {
   const phone = document.getElementById('reg-phone').value.trim();
   const pass = document.getElementById('reg-pass').value;
   const confirm = document.getElementById('reg-confirm').value;
-  if (!first || !last || !email || !pass) { showToast('Please fill in all required fields', 'error'); return; }
-  if (pass !== confirm) { showToast('Passwords do not match', 'error'); return; }
-  if (pass.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  if (!first || !last || !email || !pass) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  if (pass !== confirm) {
+    showToast('Passwords do not match', 'error');
+    return;
+  }
+  if (pass.length < 8) {
+    showToast('Password must be at least 8 characters', 'error');
+    return;
+  }
 
   if (window.SupabaseWeb) {
     try {
@@ -687,6 +718,7 @@ function onLoginSuccess(showWelcomeToast = true) {
   document.getElementById('user-greeting').textContent = `Hello, ${state.currentUser.name.split(' ')[0]} 👋`;
   localStorage.setItem(SESSION_STORAGE_KEY, (state.currentUser.email || '').toLowerCase());
   localStorage.setItem(SESSION_USER_KEY, JSON.stringify(state.currentUser));
+
   if (state.currentUser.role === 'admin') {
     document.getElementById('admin-access-btn').style.display = 'block';
     document.getElementById('shipper-access-btn').style.display = 'none';
@@ -705,9 +737,7 @@ function onLoginSuccess(showWelcomeToast = true) {
   setTimeout(() => restoreMenuVisibility(true), 1000);
   if (showWelcomeToast) {
     showToast(`Welcome back, ${state.currentUser.name.split(' ')[0]}! 🎉`, 'success');
-  }
 
-  if (showWelcomeToast) {
     let target = null;
     if (state.currentUser.role === 'admin') {
       target = '/admin/dashboard';
@@ -764,7 +794,10 @@ document.addEventListener('click', e => {
 });
 
 function requireLogin(fn, ...args) {
-  if (!state.currentUser) { openModal('login-modal'); return; }
+  if (!state.currentUser) {
+    openModal('login-modal');
+    return;
+  }
   fn(...args);
 }
 
@@ -781,14 +814,14 @@ function addToCart(productId, silent = false) {
 }
 
 function removeFromCart(id) {
-  const nid = !isNaN(id) && id !== "" ? Number(id) : id;
+  const nid = !isNaN(id) && id !== '' ? Number(id) : id;
   state.cart = state.cart.filter(i => i.id !== nid);
   updateCartCount();
   renderCartItems();
 }
 
 function changeQty(id, d) {
-  const nid = !isNaN(id) && id !== "" ? Number(id) : id;
+  const nid = !isNaN(id) && id !== '' ? Number(id) : id;
   const item = state.cart.find(i => i.id === nid);
   if (!item) return;
   item.qty = Math.max(1, item.qty + d);
@@ -824,7 +857,7 @@ function renderCartItems() {
   }
   list.innerHTML = state.cart.map(item => `
     <div class="cart-item">
-      <div class="cart-item-img">${item.emoji.split('').slice(0, 2).join('')}</div>
+      <div class="cart-item-img">${item.emoji.split("").slice(0, 2).join("")}</div>
       <div style="flex:1;min-width:0">
         <div class="cart-item-name">${item.name}</div>
         <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
@@ -835,7 +868,7 @@ function renderCartItems() {
           <span style="font-family:var(--font-cond);font-size:13px;font-weight:700;color:var(--red-light);margin-left:8px">$${(item.price * item.qty).toFixed(2)}</span>
         </div>
       </div>
-      <button class="remove-item" onclick="removeFromCart('${item.id}')">❤️</button>
+      <button class="remove-item" onclick="removeFromCart('${item.id}')">✕</button>
     </div>`).join('');
   footer.style.display = 'block';
   updateCartTotals();
@@ -854,6 +887,7 @@ function computeCartTotals() {
     else if (promo.type === 'flat') discount = promo.value;
     else if (promo.type === 'delivery') {
       discount = shippingFee;
+      shippingFee = 0;
     }
   }
 
@@ -866,7 +900,6 @@ function updateCartTotals() {
   const totals = computeCartTotals();
   const discountRow = document.getElementById('cart-discount-row');
   const discountValue = document.getElementById('cart-discount');
-
   if (discountRow && discountValue) {
     if (totals.discount > 0) {
       discountRow.style.display = 'flex';
@@ -875,9 +908,7 @@ function updateCartTotals() {
       discountRow.style.display = 'none';
     }
   }
-
   document.getElementById('cart-subtotal').textContent = `$${totals.subtotal.toFixed(2)}`;
-
   const cartDeliveryRow = document.getElementById('cart-delivery-row');
   if (cartDeliveryRow) {
     if (state.shippingInfo.distance > 0) {
@@ -887,7 +918,6 @@ function updateCartTotals() {
       cartDeliveryRow.style.display = 'none';
     }
   }
-
   const coDeliveryValue = document.getElementById('co-delivery');
   if (coDeliveryValue) {
     if (state.shippingInfo.distance > 0) {
@@ -897,12 +927,9 @@ function updateCartTotals() {
       coDeliveryValue.textContent = `$${totals.shippingFee.toFixed(2)}`;
     }
   }
-
   document.getElementById('cart-total').textContent = `$${totals.total.toFixed(2)}`;
-
   const coSubtotal = document.getElementById('co-subtotal');
   if (coSubtotal) coSubtotal.textContent = `$${totals.subtotal.toFixed(2)}`;
-
   const coTotal = document.getElementById('co-total');
   if (coTotal) coTotal.textContent = `$${totals.total.toFixed(2)}`;
 }
@@ -1260,12 +1287,6 @@ async function placeOrder() {
     console.error('Place order error:', err);
     showToast(err.message || 'Failed to place order', 'error');
     return false;
-  } finally {
-    isPlacingOrder = false;
-    if (placeBtn) {
-      placeBtn.disabled = false;
-      placeBtn.textContent = 'PLACE ORDER ?';
-    }
   }
 }
 
@@ -1274,7 +1295,7 @@ function renderOrdersModal() {
   const list = document.getElementById('orders-list');
   const orders = state.currentUser?.orders || [];
   if (!orders.length) {
-    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text)"><div style="font-size:48px;margin-bottom:12px">🛒</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No orders yet</div><p>Your order history will appear here.</p></div>`;
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text)"><div style="font-size:48px;margin-bottom:12px">📦</div><div style="font-family:var(--font-cond);font-size:16px;font-weight:700;letter-spacing:1px">No orders yet</div><p>Your order history will appear here.</p></div>`;
     return;
   }
   list.innerHTML = orders.map(o => `
@@ -1306,7 +1327,8 @@ function openModal(id) {
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
   document.body.style.overflow = '';
 }
 
@@ -1327,7 +1349,8 @@ function toggleMobileMenu() {
   document.getElementById('mobile-menu').classList.toggle('open');
 }
 function closeMobileMenu() {
-  document.getElementById('mobile-menu').classList.remove('open');
+  const menu = document.getElementById('mobile-menu');
+  if (menu) menu.classList.remove('open');
 }
 
 // ========== TOAST ==========
@@ -1336,8 +1359,11 @@ function showToast(msg, type = 'default') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span class="toast-icon">${icons[type] || '🔔'}</span><span>${msg}</span>`;
-  document.getElementById('toast-container').appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+  const container = document.getElementById('toast-container');
+  if (container) {
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
 }
 
 // ========== ADMIN DASHBOARD ==========
@@ -1366,14 +1392,16 @@ function openCustomerPortal() {
 }
 
 function closeAdminDashboard() {
-  document.getElementById('admin-dashboard').style.display = 'none';
+  const panel = document.getElementById('admin-dashboard');
+  if (panel) panel.style.display = 'none';
 }
 
 function showAdminPanel(name) {
   document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById(`panel-${name}`).classList.add('active');
+  const targetPanel = document.getElementById(`panel-${name}`);
+  if (targetPanel) targetPanel.classList.add('active');
   document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if (event && event.currentTarget) event.currentTarget.classList.add('active');
   if (name === 'products') renderAdminProducts();
   if (name === 'categories') renderAdminCategories();
   if (name === 'orders') renderAdminOrders();
@@ -1382,14 +1410,18 @@ function showAdminPanel(name) {
 }
 
 function updateAdminStats() {
-  document.getElementById('admin-orders-count').textContent = ORDERS.length;
-  document.getElementById('admin-products-count').textContent = PRODUCTS.length;
-  document.getElementById('admin-users-count').textContent = USERS.length;
+  const ordersEl = document.getElementById('admin-orders-count');
+  const productsEl = document.getElementById('admin-products-count');
+  const usersEl = document.getElementById('admin-users-count');
+  if (ordersEl) ordersEl.textContent = ORDERS.length;
+  if (productsEl) productsEl.textContent = PRODUCTS.length;
+  if (usersEl) usersEl.textContent = USERS.length;
   renderAdminRecentOrders();
 }
 
 function renderAdminRecentOrders() {
   const tbody = document.getElementById('admin-recent-orders');
+  if (!tbody) return;
   tbody.innerHTML = ORDERS.slice(-5).reverse().map(o => `
     <tr>
       <td><strong>${o.id}</strong></td>
@@ -1403,14 +1435,15 @@ function renderAdminRecentOrders() {
 
 function renderAdminProducts(filter = '') {
   const tbody = document.getElementById('admin-products-table');
-  const list = filter ? PRODUCTS.filter(p => p.name.toLowerCase().includes(filter)) : PRODUCTS;
+  if (!tbody) return;
+  const list = filter ? PRODUCTS.filter(p => (p.name || '').toLowerCase().includes(filter)) : PRODUCTS;
   tbody.innerHTML = list.map(p => `
     <tr>
       <td><span style="font-size:20px;margin-right:8px">${p.emoji}</span>${p.name}</td>
       <td><span style="text-transform:capitalize">${p.cat}</span></td>
-      <td style="color:var(--red-light);font-weight:700">$${p.price.toFixed(2)}</td>
+      <td style="color:var(--red-light);font-weight:700">$${(p.price || 0).toFixed(2)}</td>
       <td><span class="status-badge status-${p.available ? 'active' : 'inactive'}">${p.available ? 'Active' : 'Inactive'}</span></td>
-      <td>${p.tags.join(', ')}</td>
+      <td>${(p.tags || []).join(', ')}</td>
       <td>
         <div class="action-btns">
           <button class="action-btn action-edit" onclick="openEditProduct(${p.id})">Edit</button>
@@ -1422,6 +1455,7 @@ function renderAdminProducts(filter = '') {
 
 function renderAdminCategories() {
   const tbody = document.getElementById('admin-categories-table');
+  if (!tbody) return;
   tbody.innerHTML = CATEGORIES.map(c => `
     <tr>
       <td style="font-size:24px">${c.icon}</td>
@@ -1438,6 +1472,7 @@ function renderAdminCategories() {
 
 function renderAdminOrders() {
   const tbody = document.getElementById('admin-orders-table');
+  if (!tbody) return;
   tbody.innerHTML = ORDERS.map(o => `
     <tr>
       <td><strong>${o.id}</strong></td>
@@ -1457,6 +1492,7 @@ function renderAdminOrders() {
 
 function renderAdminUsers() {
   const tbody = document.getElementById('admin-users-table');
+  if (!tbody) return;
   tbody.innerHTML = USERS.map(u => `
     <tr>
       <td><strong>${u.name}</strong></td>
@@ -1475,6 +1511,7 @@ function renderAdminUsers() {
 
 function renderAdminPromos() {
   const tbody = document.getElementById('admin-promos-table');
+  if (!tbody) return;
   const promoList = Object.entries(PROMOS).map(([code, p]) => ({ code, ...p }));
   tbody.innerHTML = promoList.map(p => `
     <tr>
@@ -1492,38 +1529,60 @@ function renderAdminPromos() {
     </tr>`).join('');
 }
 
-function filterAdminProducts(q) { renderAdminProducts(q.toLowerCase()); }
+function filterAdminProducts(q) {
+  renderAdminProducts(q.toLowerCase());
+}
 
 function changeOrderStatus(id, status) {
   const o = ORDERS.find(x => x.id === id);
-  if (o) { o.status = status; renderAdminOrders(); updateAdminStats(); showToast(`Order ${id} marked as ${status}`, 'success'); }
+  if (o) {
+    o.status = status;
+    renderAdminOrders();
+    updateAdminStats();
+    showToast(`Order ${id} marked as ${status}`, 'success');
+  }
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  PRODUCTS = PRODUCTS.filter(p => p.id !== id);
-  renderAdminProducts();
-  renderProducts();
-  renderBestSellers();
-  updateAdminStats();
-  showToast('Product deleted', 'success');
+  try {
+    await APIClient.deleteProduct(id);
+    PRODUCTS = PRODUCTS.filter(p => p.id !== id);
+    renderAdminProducts();
+    renderProducts();
+    renderBestSellers();
+    updateAdminStats();
+    showToast('Product deleted', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || 'Failed to delete product', 'error');
+  }
 }
 
 function deleteUser(id) {
-  if (id === 1) { showToast('Cannot delete admin user', 'error'); return; }
+  if (id === 1) {
+    showToast('Cannot delete admin user', 'error');
+    return;
+  }
   if (!confirm('Remove this user?')) return;
-  USERS.splice(USERS.findIndex(u => u.id === id), 1);
+  const idx = USERS.findIndex(u => u.id === id);
+  if (idx !== -1) USERS.splice(idx, 1);
   renderAdminUsers();
   updateAdminStats();
   showToast('User removed', 'success');
 }
 
-function addCategory() { showToast('Category creation coming soon!', 'info'); }
+function addCategory() {
+  showToast('Category creation coming soon!', 'info');
+}
 
 function openAddProduct() {
   document.getElementById('admin-product-modal-title').textContent = 'ADD PRODUCT';
   document.getElementById('edit-product-id').value = '';
-  ['prod-name', 'prod-price', 'prod-desc', 'prod-emoji', 'prod-tags'].forEach(id => document.getElementById(id).value = '');
+  ['prod-name', 'prod-price', 'prod-desc', 'prod-emoji', 'prod-tags'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   document.getElementById('prod-cat').value = 'noodles';
   document.getElementById('prod-avail').value = 'true';
   openModal('admin-product-modal');
@@ -1540,32 +1599,80 @@ function openEditProduct(id) {
   document.getElementById('prod-desc').value = p.desc;
   document.getElementById('prod-emoji').value = p.emoji;
   document.getElementById('prod-avail').value = p.available ? 'true' : 'false';
-  document.getElementById('prod-tags').value = p.tags.join(', ');
+  document.getElementById('prod-tags').value = (p.tags || []).join(', ');
   openModal('admin-product-modal');
 }
 
-function saveProduct() {
+async function saveProduct() {
   const name = document.getElementById('prod-name').value.trim();
   const cat = document.getElementById('prod-cat').value;
   const price = parseFloat(document.getElementById('prod-price').value);
   const desc = document.getElementById('prod-desc').value.trim();
   const emoji = document.getElementById('prod-emoji').value.trim() || '🍲';
   const available = document.getElementById('prod-avail').value === 'true';
-  const tags = document.getElementById('prod-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const tagsRaw = document.getElementById('prod-tags').value.split(',').map(t => t.trim()).filter(Boolean);
   const editId = document.getElementById('edit-product-id').value;
-  if (!name || !price || !desc) { showToast('Please fill in required fields', 'error'); return; }
-  if (editId) {
-    const p = PRODUCTS.find(x => x.id === parseInt(editId));
-    if (p) Object.assign(p, { name, cat, price, desc, emoji, available, tags });
-    showToast('Product updated! ✅', 'success');
-  } else {
-    PRODUCTS.push({ id: PRODUCTS.length + 1, name, cat, price, desc, emoji, available, tags, rating: 4.5, reviews: [] });
-    showToast('Product added! ✅', 'success');
+
+  if (!name) { showToast('Product name is required', 'error'); return; }
+  if (!price || price <= 0) { showToast('Price must be greater than 0', 'error'); return; }
+
+  const saveBtn = document.querySelector('#admin-product-modal .btn-primary');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
+  try {
+    if (editId) {
+      const metadata = {
+        productname: name,
+        price: price,
+        description: desc,
+        categoryid: cat === 'noodles' ? 1 : cat === 'pizza' ? 2 : cat === 'beverages' ? 3 : 4,
+        emoji: emoji,
+        isactive: available,
+        tags: tagsRaw.join(', '),
+      };
+      await APIClient.updateProductMetadata(parseInt(editId), metadata);
+      const p = PRODUCTS.find(x => x.id === parseInt(editId));
+      if (p) Object.assign(p, { name, cat, price, desc, emoji, available, tags: tagsRaw });
+      showToast('Product updated! ✅', 'success');
+    } else {
+      const payload = {
+        productname: name,
+        price: price,
+        description: desc,
+        categoryid: cat === 'noodles' ? 1 : cat === 'pizza' ? 2 : cat === 'beverages' ? 3 : 4,
+        emoji: emoji,
+        isactive: available,
+        tags: tagsRaw.join(', '),
+        stockquantity: 100,
+      };
+      const response = await APIClient.createProduct(payload);
+      const newProduct = response.product;
+      if (newProduct) {
+        PRODUCTS.push({
+          id: Number(newProduct.productid),
+          name: newProduct.productname || name,
+          cat: cat,
+          price: Number(newProduct.price || price),
+          desc: newProduct.description || desc,
+          emoji: newProduct.emoji || emoji,
+          available: newProduct.isactive !== false,
+          tags: tagsRaw,
+          rating: 4.5,
+          reviews: [],
+        });
+      }
+      showToast('Product added successfully! 🎉', 'success');
+    }
+    closeModal('admin-product-modal');
+    renderAdminProducts();
+    renderProducts();
+    renderBestSellers();
+    renderCategories();
+    updateAdminStats();
+  } catch (err) {
+    console.error('saveProduct error:', err);
+    showToast(`Failed to save product: ${err.message || err}`, 'error');
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'SAVE PRODUCT'; }
   }
-  closeModal('admin-product-modal');
-  renderAdminProducts();
-  renderProducts();
-  renderBestSellers();
-  renderCategories();
-  updateAdminStats();
 }
