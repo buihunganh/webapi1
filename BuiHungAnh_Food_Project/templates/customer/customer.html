@@ -630,6 +630,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/static/js/supabase-web.js"></script>
   <script src="/static/js/api-client.js"></script>
+  <script>
+    window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_access_token }}";
+  </script>
   <script src="/static/js/customer.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -644,9 +647,6 @@
       });
     });
   </script>
-  <script>
-  window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_access_token }}";
-</script>
 </body>
 
 </html>

@@ -924,7 +924,7 @@ function initCheckoutMap() {
   const storeEl = document.createElement('div');
   storeEl.className = 'store-marker';
   storeEl.style.fontSize = '32px';
-  storeEl.innerHTML = '🏪';
+  storeEl.innerHTML = '🏬';
 
   new mapboxgl.Marker(storeEl)
     .setLngLat([STORE_COORDS.lng, STORE_COORDS.lat])
