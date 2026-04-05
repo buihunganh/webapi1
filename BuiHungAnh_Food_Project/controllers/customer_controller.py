@@ -140,6 +140,9 @@ def api_create_order():
     notes = (payload.get('notes') or '').strip() or None
     payment_method = (payload.get('payment_method') or 'cod').strip().lower()
     customer_name = (payload.get('customer_name') or '').strip() or None
+    lat = payload.get('latitude')
+    lng = payload.get('longitude')
+    estimated_eta = payload.get('estimated_eta')
 
     address_id = payload.get('address_id')
     try:
@@ -160,6 +163,9 @@ def api_create_order():
             notes=notes,
             payment_method=payment_method,
             customer_name=customer_name,
+            lat=lat,
+            lng=lng,
+            estimated_eta=estimated_eta,
         )
         return jsonify({"ok": True, "order": order_summary}), 201
     except ValueError as exc:
@@ -186,8 +192,29 @@ def api_update_order_status(order_id):
         }), 400
 
     try:
-        update_order_status(order_id, status)
+        shipper_id = payload.get('shipper_id')
+        update_order_status(order_id, status, shipper_id=shipper_id)
         return jsonify({"ok": True, "order_id": order_id, "new_status": status}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/orders/<int:order_id>/location', methods=['POST'])
+def api_update_shipper_location(order_id):
+    """Endpoint for shippers to update their real-time location (every 5s)."""
+    from models.orders import update_shipper_location
+    payload = request.get_json(silent=True) or {}
+    lat = payload.get('lat')
+    lng = payload.get('lng')
+
+    if lat is None or lng is None:
+        return jsonify({"ok": False, "error": "lat and lng are required"}), 400
+
+    try:
+        ok = update_shipper_location(order_id, float(lat), float(lng))
+        if not ok:
+            return jsonify({"ok": False, "error": "Order not found"}), 404
+        return jsonify({"ok": True}), 200
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
 

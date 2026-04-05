@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List, Tuple
 from models.supabase_client import get_supabase
 
 TWOPLACES = Decimal('0.01')
-DEFAULT_SHIPPING_FEE = Decimal('2.99')
+DEFAULT_SHIPPING_FEE = Decimal('2.00')
 PAYMENT_METHOD_MAP = {
     'cod': 'Cash',
     'cash': 'Cash',
@@ -15,6 +15,7 @@ PAYMENT_METHOD_MAP = {
     'bank': 'BankTransfer',
     'banktransfer': 'BankTransfer',
 }
+STORE_COORDS = {'lat': 51.5033, 'lng': -0.1182}
 
 
 def _to_decimal(value, default: Decimal | str = '0') -> Decimal:
@@ -52,7 +53,7 @@ def get_all_orders(limit: int = 200):
     sb = get_supabase()
     response = (
         sb.table('orders')
-        .select('*, customer:customerid(fullname,email,phone)')
+        .select('*, customer:customerid(fullname,email,phone), address:addressid(fulladdress,city)')
         .order('orderdate', desc=True)
         .limit(limit)
         .execute()
@@ -60,12 +61,34 @@ def get_all_orders(limit: int = 200):
     return response.data or []
 
 
-def update_order_status(order_id, status):
-    """UPDATE trạng thái đơn hàng"""
+def update_order_status(order_id, status, shipper_id=None):
+    """UPDATE trạng thái đơn hàng và ghi nhận thời điểm giao hàng nếu cần."""
     sb = get_supabase()
-    response = sb.table('orders').update({'orderstatus': status}).eq('orderid', order_id).execute()
+    payload = {'orderstatus': status}
+    if shipper_id:
+        payload['shipperid'] = shipper_id
+        
+    if status == 'shipping':
+        payload['actual_delivery_start'] = 'now()'
+    
+    if status in ['waiting_for_shipper', 'shipping']:
+        # Initialize shipper at store location
+        payload['shipper_lat'] = STORE_COORDS['lat']
+        payload['shipper_lng'] = STORE_COORDS['lng']
+    
+    response = sb.table('orders').update(payload).eq('orderid', order_id).execute()
     if not response.data:
         raise RuntimeError(f'Order {order_id} not found or unchanged')
+
+
+def update_shipper_location(order_id: int, lat: float, lng: float):
+    """Update real-time shipper location for an order."""
+    sb = get_supabase()
+    response = sb.table('orders').update({
+        'shipper_lat': lat,
+        'shipper_lng': lng
+    }).eq('orderid', order_id).execute()
+    return bool(response.data)
 
 
 def _fetch_products_map(sb, product_ids: Iterable[int]) -> Dict[int, Dict]:
@@ -148,7 +171,7 @@ def _resolve_promotion(sb, promo_code: str | None, subtotal: Decimal, shipping_f
         discount_value = promo_value
     elif discount_type == 'delivery':
         discount_value = shipping_fee if shipping_fee > 0 else promo_value
-        adjusted_shipping = Decimal('0.00')
+        adjusted_shipping = shipping_fee
     else:
         raise ValueError('Loại khuyến mãi không được hỗ trợ')
 
@@ -174,6 +197,9 @@ def create_order(
     notes: str | None = None,
     payment_method: str | None = None,
     customer_name: str | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+    estimated_eta: str | None = None,
 ):
     if not customer_id:
         raise ValueError('customer_id is required')
@@ -236,6 +262,9 @@ def create_order(
         'discount': float(discount_value),
         'orderstatus': 'pending',
         'notes': notes,
+        'latitude': lat,
+        'longitude': lng,
+        'estimated_delivery_time': estimated_eta,
     }
 
     order_resp = sb.table('orders').insert(order_payload).execute()

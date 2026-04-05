@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard – ShisaFood</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css">
+
   <style>
     :root {
       --panel-bg: rgba(17, 17, 17, 0.95);
@@ -33,10 +37,12 @@
       border-color: rgba(255, 255, 255, 0.5) !important;
       box-shadow: none !important;
     }
+
     body.admin-contrast-mode .sbadge {
       border: 1px solid currentColor !important;
       background: transparent !important;
     }
+
     body.admin-contrast-mode .status-select,
     body.admin-contrast-mode .search-input {
       background: #000 !important;
@@ -68,12 +74,14 @@
       gap: 4px;
       margin-bottom: 30px;
     }
+
     .sidebar-brand h2 {
       font-family: var(--font-display);
       font-size: 26px;
       letter-spacing: 2px;
       margin: 0;
     }
+
     .sidebar-brand span {
       font-size: 12px;
       letter-spacing: 4px;
@@ -103,15 +111,18 @@
       transition: var(--transition);
       cursor: pointer;
     }
+
     .a-nav-item .a-nav-icon {
       width: 24px;
       text-align: center;
       font-size: 18px;
     }
+
     .a-nav-item:hover {
       background: rgba(255, 255, 255, 0.05);
       color: var(--white);
     }
+
     .a-nav-item.active {
       background: rgba(232, 0, 13, 0.18);
       color: var(--white);
@@ -145,6 +156,7 @@
       position: relative;
       overflow: hidden;
     }
+
     .panel-hero::after {
       content: '';
       position: absolute;
@@ -152,18 +164,21 @@
       background: radial-gradient(circle at right top, rgba(232, 0, 13, 0.25), transparent 45%);
       pointer-events: none;
     }
+
     .panel-hero h1 {
       font-family: var(--font-display);
       font-size: clamp(28px, 4vw, 44px);
       letter-spacing: 1px;
       margin: 6px 0 12px;
     }
+
     .panel-hero p {
       max-width: 480px;
       color: rgba(255, 255, 255, 0.75);
       margin: 0;
       line-height: 1.6;
     }
+
     .hero-meta {
       display: flex;
       flex-direction: column;
@@ -171,6 +186,7 @@
       font-size: 14px;
       color: rgba(255, 255, 255, 0.7);
     }
+
     .eyebrow {
       font-size: 12px;
       text-transform: uppercase;
@@ -184,6 +200,7 @@
       gap: 18px;
       margin: 32px 0 40px;
     }
+
     .stat-card {
       background: var(--panel-bg);
       border-radius: 20px;
@@ -196,6 +213,7 @@
       position: relative;
       overflow: hidden;
     }
+
     .stat-card::after {
       content: '';
       position: absolute;
@@ -204,9 +222,11 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
+
     .stat-card:hover::after {
       opacity: 0.4;
     }
+
     .stat-label {
       font-family: var(--font-cond);
       font-size: 13px;
@@ -214,12 +234,14 @@
       text-transform: uppercase;
       color: var(--gray-text);
     }
+
     .stat-value {
       font-family: var(--font-display);
       font-size: clamp(30px, 4vw, 40px);
       color: var(--white);
       z-index: 1;
     }
+
     .stat-change {
       font-size: 13px;
       display: inline-flex;
@@ -228,8 +250,14 @@
       color: var(--gray-text);
       z-index: 1;
     }
-    .stat-change.up { color: var(--success); }
-    .stat-change.down { color: var(--red-light); }
+
+    .stat-change.up {
+      color: var(--success);
+    }
+
+    .stat-change.down {
+      color: var(--red-light);
+    }
 
     .insight-grid {
       display: grid;
@@ -245,6 +273,7 @@
       box-shadow: var(--panel-shadow);
       overflow: hidden;
     }
+
     .panel-card__header {
       padding: 22px clamp(18px, 3vw, 32px);
       border-bottom: 1px solid var(--panel-border);
@@ -254,12 +283,14 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+
     .panel-card__title {
       font-family: var(--font-display);
       font-size: 20px;
       letter-spacing: 1px;
       margin: 0;
     }
+
     .panel-card__body {
       padding: clamp(18px, 3vw, 32px);
     }
@@ -269,6 +300,7 @@
       flex-direction: column;
       gap: 14px;
     }
+
     .chart-bar-item {
       display: grid;
       grid-template-columns: 80px 1fr 70px;
@@ -277,12 +309,14 @@
       color: var(--gray-text);
       gap: 12px;
     }
+
     .chart-bar-track {
       height: 12px;
       background: rgba(255, 255, 255, 0.08);
       border-radius: 999px;
       overflow: hidden;
     }
+
     .chart-bar-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--red), var(--red-light));
@@ -296,10 +330,12 @@
       align-items: center;
       gap: 16px;
     }
+
     .donut-svg {
       width: 180px;
       height: 180px;
     }
+
     .donut-legend {
       width: 100%;
       display: flex;
@@ -308,11 +344,13 @@
       font-size: 14px;
       color: var(--gray-text);
     }
+
     .donut-legend-item {
       display: flex;
       align-items: center;
       gap: 10px;
     }
+
     .donut-dot {
       width: 12px;
       height: 12px;
@@ -326,11 +364,13 @@
       gap: 20px;
       margin-bottom: 36px;
     }
+
     .list-stack {
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
+
     .list-item {
       padding: 14px 18px;
       border-radius: 16px;
@@ -344,12 +384,14 @@
       font-size: 14px;
       color: var(--white);
     }
+
     .a-table th,
     .a-table td {
       padding: 14px 18px;
       border-bottom: 1px solid var(--panel-border);
       text-align: left;
     }
+
     .a-table th {
       font-size: 11px;
       letter-spacing: 2px;
@@ -357,9 +399,11 @@
       color: rgba(255, 255, 255, 0.6);
       background: rgba(255, 255, 255, 0.02);
     }
+
     .a-table tr:hover td {
       background: rgba(232, 0, 13, 0.08);
     }
+
     .table-empty {
       text-align: center;
       color: var(--gray-text);
@@ -373,12 +417,14 @@
       gap: 12px;
       margin-bottom: 16px;
     }
+
     .detail-card {
       border: 1px solid var(--panel-border);
       border-radius: 14px;
       padding: 12px 16px;
       background: rgba(255, 255, 255, 0.03);
     }
+
     .detail-value {
       font-family: var(--font-display);
       font-size: 20px;
@@ -397,10 +443,30 @@
       letter-spacing: 1px;
       border: 1px solid transparent;
     }
-    .sbadge-success { background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.2); }
-    .sbadge-warning { background: rgba(249, 115, 22, 0.18); color: #fb923c; border-color: rgba(249, 115, 22, 0.3); }
-    .sbadge-danger { background: rgba(232, 0, 13, 0.15); color: var(--red-light); border-color: rgba(232, 0, 13, 0.3); }
-    .sbadge-info { background: rgba(99, 179, 237, 0.18); color: #63b3ed; border-color: rgba(99, 179, 237, 0.3); }
+
+    .sbadge-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .sbadge-warning {
+      background: rgba(249, 115, 22, 0.18);
+      color: #fb923c;
+      border-color: rgba(249, 115, 22, 0.3);
+    }
+
+    .sbadge-danger {
+      background: rgba(232, 0, 13, 0.15);
+      color: var(--red-light);
+      border-color: rgba(232, 0, 13, 0.3);
+    }
+
+    .sbadge-info {
+      background: rgba(99, 179, 237, 0.18);
+      color: #63b3ed;
+      border-color: rgba(99, 179, 237, 0.3);
+    }
 
     .status-select {
       width: 100%;
@@ -419,22 +485,31 @@
       background-size: 6px 6px, 6px 6px;
       background-repeat: no-repeat;
     }
+
     .status-select:focus {
       border-color: var(--red);
       box-shadow: 0 0 0 2px rgba(232, 0, 13, 0.35);
     }
+
     .status-select option {
       background: #111;
       color: var(--white);
     }
+
     .status-select option:hover,
     .status-select option:checked {
       background: var(--red);
       color: #fff;
     }
 
-    .a-panel { display: none; animation: fadeInUp 0.35s ease forwards; }
-    .a-panel.active { display: block; }
+    .a-panel {
+      display: none;
+      animation: fadeInUp 0.35s ease forwards;
+    }
+
+    .a-panel.active {
+      display: block;
+    }
 
     .panel-headline {
       display: flex;
@@ -444,6 +519,7 @@
       gap: 16px;
       margin-bottom: 18px;
     }
+
     .panel-headline h2 {
       font-family: var(--font-display);
       font-size: 28px;
@@ -460,16 +536,22 @@
       background: rgba(255, 255, 255, 0.05);
       color: var(--white);
     }
+
     .search-input::placeholder {
       color: rgba(255, 255, 255, 0.35);
     }
+
     .search-input:focus {
       outline: none;
       border-color: var(--red);
       box-shadow: 0 0 0 3px rgba(232, 0, 13, 0.25);
     }
 
-    .abtns { display: flex; gap: 8px; }
+    .abtns {
+      display: flex;
+      gap: 8px;
+    }
+
     .abtn {
       border-radius: 10px;
       padding: 6px 14px;
@@ -482,19 +564,45 @@
       background: rgba(255, 255, 255, 0.05);
       color: var(--white);
     }
-    .abtn-edit { background: rgba(249, 115, 22, 0.2); border-color: rgba(249, 115, 22, 0.4); color: #fff; }
-    .abtn-del { background: rgba(232, 0, 13, 0.2); border-color: rgba(232, 0, 13, 0.4); }
-    .abtn-view { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.12); }
 
-    .muted { color: var(--gray-text); font-size: 13px; }
+    .abtn-edit {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.4);
+      color: #fff;
+    }
+
+    .abtn-del {
+      background: rgba(232, 0, 13, 0.2);
+      border-color: rgba(232, 0, 13, 0.4);
+    }
+
+    .abtn-view {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .muted {
+      color: var(--gray-text);
+      font-size: 13px;
+    }
 
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @media (max-width: 1080px) {
-      .admin-wrapper { grid-template-columns: 1fr; }
+      .admin-wrapper {
+        grid-template-columns: 1fr;
+      }
+
       .a-sidebar {
         position: fixed;
         left: -100%;
@@ -502,425 +610,503 @@
         height: 100vh;
         transition: transform 0.3s ease;
       }
-      .a-sidebar.open { transform: translateX(100%); }
-      .a-main { padding-top: calc(var(--nav-h) + 32px); }
+
+      .a-sidebar.open {
+        transform: translateX(100%);
+      }
+
+      .a-main {
+        padding-top: calc(var(--nav-h) + 32px);
+      }
     }
 
     @media (max-width: 768px) {
-      .stat-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-      .insight-grid, .data-split { grid-template-columns: 1fr; }
-      .panel-hero { border-radius: 22px; }
+      .stat-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .insight-grid,
+      .data-split {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-hero {
+        border-radius: 22px;
+      }
     }
 
     @media (max-width: 520px) {
-      .panel-card__header { flex-direction: column; align-items: flex-start; }
-      .search-input { width: 100%; }
+      .panel-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .search-input {
+        width: 100%;
+      }
     }
+
+
   </style>
 </head>
+
 <body class="admin-theme">
 
-<nav id="navbar" class="scrolled">
-  <div class="container">
-    <div class="nav-inner">
-      <a href="/index.html" class="nav-logo">SHISA<span>FOOD</span><div class="logo-dot"></div></a>
-      <div style="font-family:var(--font-display);font-size:14px;letter-spacing:4px;text-transform:uppercase;color:var(--white);">Command Deck</div>
-      <div class="nav-actions">
-        <div id="admin-clock" class="muted" style="font-weight:600"></div>
-        <button class="nav-icon-btn" onclick="logout()" title="Logout">🚪</button>
-        <div id="admin-name" style="font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--white)">Admin</div>
+  <nav id="navbar" class="scrolled">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/index.html" class="nav-logo">SHISA<span>FOOD</span>
+          <div class="logo-dot"></div>
+        </a>
+        <div
+          style="font-family:var(--font-display);font-size:14px;letter-spacing:4px;text-transform:uppercase;color:var(--white);">
+          Command Deck</div>
+        <div class="nav-actions">
+          <div id="admin-clock" class="muted" style="font-weight:600"></div>
+          <button class="nav-icon-btn" onclick="logout()" title="Logout">🚪</button>
+          <div id="admin-name"
+            style="font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--white)">Admin</div>
+        </div>
       </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-<div id="toast-container"></div>
+  <div id="toast-container"></div>
 
-<div class="admin-wrapper">
-  <aside class="a-sidebar" id="a-sidebar">
-    <div class="sidebar-brand">
-      <span>Realtime Control</span>
-      <h2>Shisa Ops</h2>
-    </div>
-    <div class="a-sidebar-label">Overview</div>
-    <a class="a-nav-item active" onclick="showPanel('dashboard', this)"><span class="a-nav-icon">📊</span>Dashboard</a>
+  <div class="admin-wrapper">
+    <aside class="a-sidebar" id="a-sidebar">
+      <div class="sidebar-brand">
+        <span>Realtime Control</span>
+        <h2>Shisa Ops</h2>
+      </div>
+      <div class="a-sidebar-label">Overview</div>
+      <a class="a-nav-item active" onclick="showPanel('dashboard', this)"><span
+          class="a-nav-icon">📊</span>Dashboard</a>
 
-    <div class="a-sidebar-label">Management</div>
-    <a class="a-nav-item" onclick="showPanel('products', this)"><span class="a-nav-icon">🍜</span>Products</a>
-    <a class="a-nav-item" onclick="showPanel('orders', this)"><span class="a-nav-icon">📦</span>Orders</a>
-    <a class="a-nav-item" onclick="showPanel('users', this)"><span class="a-nav-icon">👥</span>Customers</a>
-    <a class="a-nav-item" onclick="showPanel('shippers', this)"><span class="a-nav-icon">🛵</span>Shippers</a>
-    <a class="a-nav-item" onclick="showPanel('promos', this)"><span class="a-nav-icon">🎉</span>Promotions</a>
+      <div class="a-sidebar-label">Management</div>
+      <a class="a-nav-item" onclick="showPanel('products', this)"><span class="a-nav-icon">🍜</span>Products</a>
+      <a class="a-nav-item" onclick="showPanel('orders', this)"><span class="a-nav-icon">📦</span>Orders</a>
+      <a class="a-nav-item" onclick="showPanel('users', this)"><span class="a-nav-icon">👥</span>Customers</a>
+      <a class="a-nav-item" onclick="showPanel('shippers', this)"><span class="a-nav-icon">🛵</span>Shippers</a>
+      <a class="a-nav-item" onclick="showPanel('promos', this)"><span class="a-nav-icon">🎉</span>Promotions</a>
 
-    <div class="sidebar-note">Monitor sales, inventory và fulfillment hoàn toàn trong dashboard admin.</div>
-  </aside>
+      <div class="sidebar-note">Monitor sales, inventory và fulfillment hoàn toàn trong dashboard admin.</div>
+    </aside>
 
-  <main class="a-main">
-    <div class="a-panel active" id="panel-dashboard">
-      <section class="panel-hero">
-        <div>
-          <div class="eyebrow">Realtime Pulse</div>
-          <h1>Operations Command Center</h1>
-          <p id="date-display">Chào mừng quay lại, Admin 👋</p>
-        </div>
-        <div class="hero-meta">
-          <div>Data refresh happens automatically every 30s.</div>
-          <div>Need a report? Xuất ngay với một cú nhấp.</div>
-          <button class="btn btn-primary" onclick="showAdminToast('Report exported successfully!')">📥 Export report</button>
-        </div>
-      </section>
-
-      <section class="stat-grid" aria-label="Key metrics">
-        <article class="stat-card">
-          <div class="stat-label">Revenue Today</div>
-          <div class="stat-value" id="stat-revenue">$0</div>
-          <div class="stat-change up">▲ 12.4% vs yesterday</div>
-        </article>
-        <article class="stat-card">
-          <div class="stat-label">Orders</div>
-          <div class="stat-value" id="stat-orders">0</div>
-          <div class="stat-change up">↑ 8 mới trong ngày</div>
-        </article>
-        <article class="stat-card">
-          <div class="stat-label">Customers</div>
-          <div class="stat-value" id="stat-users">0</div>
-          <div class="stat-change up">↑ 24 tháng này</div>
-        </article>
-        <article class="stat-card">
-          <div class="stat-label">Shippers Online</div>
-          <div class="stat-value" id="stat-shippers">0</div>
-          <div class="stat-change down">↓ 2 currently offline</div>
-        </article>
-      </section>
-
-      <section class="insight-grid">
-        <article class="panel-card">
-          <div class="panel-card__header">
-            <h3 class="panel-card__title">Revenue last 7 days</h3>
-            <span class="sbadge sbadge-success">Growth Trend</span>
+    <main class="a-main">
+      <div class="a-panel active" id="panel-dashboard">
+        <section class="panel-hero">
+          <div>
+            <div class="eyebrow">Realtime Pulse</div>
+            <h1>Operations Command Center</h1>
+            <p id="date-display">Chào mừng quay lại, Admin 👋</p>
           </div>
-          <div class="panel-card__body">
-            <div class="chart-bar-wrap" id="revenue-chart"></div>
+          <div class="hero-meta">
+            <div>Data refresh happens automatically every 30s.</div>
+            <div>Need a report? Xuất ngay với một cú nhấp.</div>
+            <button class="btn btn-primary" onclick="showAdminToast('Report exported successfully!')">📥 Export
+              report</button>
           </div>
-        </article>
-        <article class="panel-card">
-          <div class="panel-card__header">
-            <h3 class="panel-card__title">Best sellers</h3>
-          </div>
-          <div class="panel-card__body">
-            <div class="donut-wrap">
-              <svg class="donut-svg" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(15,23,42,0.1)" stroke-width="3.8" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e8000d" stroke-width="3.8" stroke-dasharray="40 60" stroke-dashoffset="25" stroke-linecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ffb800" stroke-width="3.8" stroke-dasharray="25 75" stroke-dashoffset="-15" stroke-linecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#16a34a" stroke-width="3.8" stroke-dasharray="20 80" stroke-dashoffset="-40" stroke-linecap="round" />
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#0bbcd4" stroke-width="3.8" stroke-dasharray="15 85" stroke-dashoffset="-60" stroke-linecap="round" />
-              </svg>
-              <div class="donut-legend">
-                <div class="donut-legend-item"><div class="donut-dot" style="background:#e8000d"></div>Noodles – 40%</div>
-                <div class="donut-legend-item"><div class="donut-dot" style="background:#ffb800"></div>Pizza – 25%</div>
-                <div class="donut-legend-item"><div class="donut-dot" style="background:#16a34a"></div>Beverages – 20%</div>
-                <div class="donut-legend-item"><div class="donut-dot" style="background:#0bbcd4"></div>Sides – 15%</div>
+        </section>
+
+        <section class="stat-grid" aria-label="Key metrics">
+          <article class="stat-card">
+            <div class="stat-label">Revenue Today</div>
+            <div class="stat-value" id="stat-revenue">$0</div>
+            <div class="stat-change up">▲ 12.4% vs yesterday</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Orders</div>
+            <div class="stat-value" id="stat-orders">0</div>
+            <div class="stat-change up">↑ 8 mới trong ngày</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Customers</div>
+            <div class="stat-value" id="stat-users">0</div>
+            <div class="stat-change up">↑ 24 tháng này</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-label">Shippers Online</div>
+            <div class="stat-value" id="stat-shippers">0</div>
+            <div class="stat-change down">↓ 2 currently offline</div>
+          </article>
+        </section>
+
+
+
+        <section class="insight-grid">
+          <article class="panel-card">
+            <div class="panel-card__header">
+              <h3 class="panel-card__title">Revenue last 7 days</h3>
+              <span class="sbadge sbadge-success">Growth Trend</span>
+            </div>
+            <div class="panel-card__body">
+              <div class="chart-bar-wrap" id="revenue-chart"></div>
+            </div>
+          </article>
+          <article class="panel-card">
+            <div class="panel-card__header">
+              <h3 class="panel-card__title">Best sellers</h3>
+            </div>
+            <div class="panel-card__body">
+              <div class="donut-wrap">
+                <svg class="donut-svg" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(15,23,42,0.1)" stroke-width="3.8" />
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e8000d" stroke-width="3.8"
+                    stroke-dasharray="40 60" stroke-dashoffset="25" stroke-linecap="round" />
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ffb800" stroke-width="3.8"
+                    stroke-dasharray="25 75" stroke-dashoffset="-15" stroke-linecap="round" />
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#16a34a" stroke-width="3.8"
+                    stroke-dasharray="20 80" stroke-dashoffset="-40" stroke-linecap="round" />
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#0bbcd4" stroke-width="3.8"
+                    stroke-dasharray="15 85" stroke-dashoffset="-60" stroke-linecap="round" />
+                </svg>
+                <div class="donut-legend">
+                  <div class="donut-legend-item">
+                    <div class="donut-dot" style="background:#e8000d"></div>Noodles – 40%
+                  </div>
+                  <div class="donut-legend-item">
+                    <div class="donut-dot" style="background:#ffb800"></div>Pizza – 25%
+                  </div>
+                  <div class="donut-legend-item">
+                    <div class="donut-dot" style="background:#16a34a"></div>Beverages – 20%
+                  </div>
+                  <div class="donut-legend-item">
+                    <div class="donut-dot" style="background:#0bbcd4"></div>Sides – 15%
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </article>
-      </section>
+          </article>
+        </section>
 
-      <section class="data-split">
-        <article class="panel-card">
-          <div class="panel-card__header">
-            <h3 class="panel-card__title">Recent orders</h3>
-            <button class="abtn abtn-view" onclick="showPanel('orders', null)">View all →</button>
+        <section class="data-split">
+          <article class="panel-card">
+            <div class="panel-card__header">
+              <h3 class="panel-card__title">Recent orders</h3>
+              <button class="abtn abtn-view" onclick="showPanel('orders', null)">View all →</button>
+            </div>
+            <div class="panel-card__body">
+              <table class="a-table" aria-live="polite">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Placed</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-orders-body"></tbody>
+              </table>
+            </div>
+          </article>
+          <div class="list-stack">
+            <div class="list-item">
+              <div class="stat-label">Fulfillment SLA</div>
+              <div class="stat-value" style="font-size:32px">92%</div>
+              <p class="muted">Orders delivered under 35 minutes today.</p>
+            </div>
+            <div class="list-item">
+              <div class="stat-label">Inventory alerts</div>
+              <p class="muted">No low-stock warnings. Next check at 18:00.</p>
+            </div>
+            <div class="list-item">
+              <div class="stat-label">Customer satisfaction</div>
+              <p class="muted">4.8 ⭐ average this week across 64 reviews.</p>
+            </div>
           </div>
+        </section>
+      </div>
+
+      <div class="a-panel" id="panel-products">
+        <section class="panel-card">
           <div class="panel-card__body">
-            <table class="a-table" aria-live="polite">
+            <div class="panel-headline">
+              <div>
+                <div class="eyebrow">Inventory</div>
+                <h2>Products</h2>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <input class="search-input" type="text" placeholder="🔍 Search products"
+                  oninput="debouncedFilterTable('products-body', this.value)">
+                <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+              </div>
+            </div>
+            <div class="table-card">
+              <table class="a-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Tags</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="products-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-panel" id="panel-orders">
+        <section class="panel-card">
+          <div class="panel-card__body">
+            <div class="panel-headline">
+              <div>
+                <div class="eyebrow">Logistics</div>
+                <h2>Orders</h2>
+              </div>
+              <input class="search-input" type="text" placeholder="🔍 Search orders"
+                oninput="debouncedFilterTable('orders-body', this.value)">
+            </div>
+            <table class="a-table">
               <thead>
                 <tr>
                   <th>Order</th>
                   <th>Customer</th>
                   <th>Items</th>
                   <th>Total</th>
+                  <th>Shipper</th>
                   <th>Status</th>
-                  <th>Placed</th>
-                </tr>
-              </thead>
-              <tbody id="recent-orders-body"></tbody>
-            </table>
-          </div>
-        </article>
-        <div class="list-stack">
-          <div class="list-item">
-            <div class="stat-label">Fulfillment SLA</div>
-            <div class="stat-value" style="font-size:32px">92%</div>
-            <p class="muted">Orders delivered under 35 minutes today.</p>
-          </div>
-          <div class="list-item">
-            <div class="stat-label">Inventory alerts</div>
-            <p class="muted">No low-stock warnings. Next check at 18:00.</p>
-          </div>
-          <div class="list-item">
-            <div class="stat-label">Customer satisfaction</div>
-            <p class="muted">4.8 ⭐ average this week across 64 reviews.</p>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <div class="a-panel" id="panel-products">
-      <section class="panel-card">
-        <div class="panel-card__body">
-          <div class="panel-headline">
-            <div>
-              <div class="eyebrow">Inventory</div>
-              <h2>Products</h2>
-            </div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-              <input class="search-input" type="text" placeholder="🔍 Search products" oninput="debouncedFilterTable('products-body', this.value)">
-              <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
-            </div>
-          </div>
-          <div class="table-card">
-            <table class="a-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Status</th>
-                  <th>Tags</th>
+                  <th>Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="products-body"></tbody>
+              <tbody id="orders-body"></tbody>
             </table>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
 
-    <div class="a-panel" id="panel-orders">
-      <section class="panel-card">
-        <div class="panel-card__body">
-          <div class="panel-headline">
-            <div>
-              <div class="eyebrow">Logistics</div>
-              <h2>Orders</h2>
+      <div class="a-panel" id="panel-users">
+        <section class="panel-card">
+          <div class="panel-card__body">
+            <div class="panel-headline">
+              <div>
+                <div class="eyebrow">Customers</div>
+                <h2>User Directory</h2>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <input class="search-input" type="text" placeholder="🔍 Search customers"
+                  oninput="debouncedFilterTable('users-body', this.value)">
+                <button class="btn btn-primary" onclick="openUserModal('customer')">+ Add Customer</button>
+              </div>
             </div>
-            <input class="search-input" type="text" placeholder="🔍 Search orders" oninput="debouncedFilterTable('orders-body', this.value)">
+            <table class="a-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Orders</th>
+                  <th>Joined</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
           </div>
-          <table class="a-table">
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Shipper</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="orders-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
 
-    <div class="a-panel" id="panel-users">
-      <section class="panel-card">
-        <div class="panel-card__body">
-          <div class="panel-headline">
-            <div>
-              <div class="eyebrow">Customers</div>
-              <h2>User Directory</h2>
+      <div class="a-panel" id="panel-shippers">
+        <section class="panel-card">
+          <div class="panel-card__body">
+            <div class="panel-headline">
+              <div>
+                <div class="eyebrow">Delivery network</div>
+                <h2>Shippers</h2>
+              </div>
+              <button class="btn btn-primary" onclick="openUserModal('shipper')">+ Add Shipper</button>
             </div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-              <input class="search-input" type="text" placeholder="🔍 Search customers" oninput="debouncedFilterTable('users-body', this.value)">
-              <button class="btn btn-primary" onclick="openUserModal('customer')">+ Add Customer</button>
-            </div>
+            <table class="a-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Completed</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="shippers-body"></tbody>
+            </table>
           </div>
-          <table class="a-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Orders</th>
-                <th>Joined</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="users-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
 
-    <div class="a-panel" id="panel-shippers">
-      <section class="panel-card">
-        <div class="panel-card__body">
-          <div class="panel-headline">
-            <div>
-              <div class="eyebrow">Delivery network</div>
-              <h2>Shippers</h2>
+      <div class="a-panel" id="panel-promos">
+        <section class="panel-card">
+          <div class="panel-card__body">
+            <div class="panel-headline">
+              <div>
+                <div class="eyebrow">Growth</div>
+                <h2>Promotions</h2>
+              </div>
+              <button class="btn btn-primary" onclick="showAdminToast('Create promo feature coming soon!')">+ Create
+                Promo</button>
             </div>
-            <button class="btn btn-primary" onclick="openUserModal('shipper')">+ Add Shipper</button>
+            <table class="a-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount</th>
+                  <th>Min Order</th>
+                  <th>Used</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="promos-body"></tbody>
+            </table>
           </div>
-          <table class="a-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Completed</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="shippers-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </main>
+  </div>
 
-    <div class="a-panel" id="panel-promos">
-      <section class="panel-card">
-        <div class="panel-card__body">
-          <div class="panel-headline">
-            <div>
-              <div class="eyebrow">Growth</div>
-              <h2>Promotions</h2>
-            </div>
-            <button class="btn btn-primary" onclick="showAdminToast('Create promo feature coming soon!')">+ Create Promo</button>
+  <div class="modal-overlay hidden" id="product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px" id="prod-modal-title">ADD PRODUCT
+        </div>
+        <button class="modal-close" onclick="closeProductModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-id">
+        <div class="form-group"><label>Product Name</label><input type="text" class="form-control" id="p-name"
+            placeholder="Volcano Noodles..."></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" id="p-cat">
+              <option value="noodles">🍜 Noodles</option>
+              <option value="pizza">🍕 Pizza</option>
+              <option value="beverages">🥤 Beverages</option>
+              <option value="sides">🍟 Sides</option>
+            </select>
           </div>
-          <table class="a-table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Discount</th>
-                <th>Min Order</th>
-                <th>Used</th>
-                <th>Expires</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="promos-body"></tbody>
-          </table>
+          <div class="form-group"><label>Price ($)</label><input type="number" class="form-control" id="p-price"
+              placeholder="12.99" step="0.01"></div>
         </div>
-      </section>
-    </div>
-  </main>
-</div>
-
-<div class="modal-overlay hidden" id="product-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px" id="prod-modal-title">ADD PRODUCT</div>
-      <button class="modal-close" onclick="closeProductModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="edit-id">
-      <div class="form-group"><label>Product Name</label><input type="text" class="form-control" id="p-name" placeholder="Volcano Noodles..."></div>
-      <div class="form-row">
+        <div class="form-group"><label>Description</label><textarea class="form-control" id="p-desc" rows="3"
+            placeholder="Describe the dish..."></textarea></div>
         <div class="form-group">
-          <label>Category</label>
-          <select class="form-control" id="p-cat">
-            <option value="noodles">🍜 Noodles</option>
-            <option value="pizza">🍕 Pizza</option>
-            <option value="beverages">🥤 Beverages</option>
-            <option value="sides">🍟 Sides</option>
-          </select>
+          <label>Product Image (Supabase Storage)</label>
+          <input type="file" class="form-control" id="p-image-file" accept="image/*">
         </div>
-        <div class="form-group"><label>Price ($)</label><input type="number" class="form-control" id="p-price" placeholder="12.99" step="0.01"></div>
-      </div>
-      <div class="form-group"><label>Description</label><textarea class="form-control" id="p-desc" rows="3" placeholder="Describe the dish..."></textarea></div>
-      <div class="form-group">
-        <label>Product Image (Supabase Storage)</label>
-        <input type="file" class="form-control" id="p-image-file" accept="image/*">
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Emoji</label><input type="text" class="form-control" id="p-emoji" placeholder="🍜"></div>
-        <div class="form-group">
-          <label>Availability</label>
-          <select class="form-control" id="p-avail">
-            <option value="true">✅ In Stock</option>
-            <option value="false">❌ Out Of Stock</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group"><label>Emoji</label><input type="text" class="form-control" id="p-emoji"
+              placeholder="🍜"></div>
+          <div class="form-group">
+            <label>Availability</label>
+            <select class="form-control" id="p-avail">
+              <option value="true">✅ In Stock</option>
+              <option value="false">❌ Out Of Stock</option>
+            </select>
+          </div>
         </div>
+        <div class="form-group"><label>Tags (comma-separated)</label><input type="text" class="form-control" id="p-tags"
+            placeholder="spicy, best-seller, new"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px"
+          onclick="saveProduct()">SAVE PRODUCT</button>
       </div>
-      <div class="form-group"><label>Tags (comma-separated)</label><input type="text" class="form-control" id="p-tags" placeholder="spicy, best-seller, new"></div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px" onclick="saveProduct()">SAVE PRODUCT</button>
     </div>
   </div>
-</div>
 
-<div class="modal-overlay hidden" id="user-modal">
-  <div class="modal">
-    <div class="modal-header" style="justify-content:space-between;align-items:center;gap:12px">
-      <div>
-        <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px" id="user-modal-title">Create Customer</div>
-        <span id="u-status-pill" class="sbadge sbadge-success">Customer</span>
+  <div class="modal-overlay hidden" id="user-modal">
+    <div class="modal">
+      <div class="modal-header" style="justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px" id="user-modal-title">Create
+            Customer</div>
+          <span id="u-status-pill" class="sbadge sbadge-success">Customer</span>
+        </div>
+        <button class="modal-close" onclick="closeUserModal()">✕</button>
       </div>
-      <button class="modal-close" onclick="closeUserModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group"><label>Full name</label><input type="text" class="form-control" id="u-name" placeholder="Nguyễn Văn A"></div>
-      <div class="form-group"><label>Email</label><input type="email" class="form-control" id="u-email" placeholder="customer@shisa.com"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Phone</label><input type="tel" class="form-control" id="u-phone" placeholder="090..."></div>
-        <div class="form-group"><label>Password</label><input type="password" class="form-control" id="u-password" placeholder="Temp password"></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Full name</label><input type="text" class="form-control" id="u-name"
+            placeholder="Nguyễn Văn A"></div>
+        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="u-email"
+            placeholder="customer@shisa.com"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Phone</label><input type="tel" class="form-control" id="u-phone"
+              placeholder="090..."></div>
+          <div class="form-group"><label>Password</label><input type="password" class="form-control" id="u-password"
+              placeholder="Temp password"></div>
+        </div>
+        <p class="muted" style="font-size:12px">Mật khẩu tối thiểu 8 ký tự. Với shipper mới hệ thống sẽ yêu cầu đổi sau
+          lần đăng nhập đầu.</p>
+        <button class="btn btn-primary" id="user-modal-submit"
+          style="width:100%;justify-content:center;padding:14px;font-size:15px" onclick="saveUserInfo()">Create
+          User</button>
       </div>
-      <p class="muted" style="font-size:12px">Mật khẩu tối thiểu 8 ký tự. Với shipper mới hệ thống sẽ yêu cầu đổi sau lần đăng nhập đầu.</p>
-      <button class="btn btn-primary" id="user-modal-submit" style="width:100%;justify-content:center;padding:14px;font-size:15px" onclick="saveUserInfo()">Create User</button>
     </div>
   </div>
-</div>
 
-<div class="modal-overlay hidden" id="order-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px">Order Details</div>
-      <button class="modal-close" onclick="closeOrderModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="detail-grid">
-        <div class="detail-card">
-          <div class="stat-label">Order</div>
-          <div class="detail-value" id="order-detail-id">#SF-0000</div>
-        </div>
-        <div class="detail-card">
-          <div class="stat-label">Customer</div>
-          <div class="detail-value" id="order-detail-customer">-</div>
-        </div>
-        <div class="detail-card">
-          <div class="stat-label">Shipper</div>
-          <div class="detail-value" id="order-detail-shipper">-</div>
-        </div>
-        <div class="detail-card">
-          <div class="stat-label">Total</div>
-          <div class="detail-value" id="order-detail-total">$0.00</div>
-        </div>
-        <div class="detail-card">
-          <div class="stat-label">Status</div>
-          <div class="detail-value" id="order-detail-status">pending</div>
-        </div>
-        <div class="detail-card">
-          <div class="stat-label">Placed</div>
-          <div class="detail-value" id="order-detail-date">-</div>
-        </div>
+  <div class="modal-overlay hidden" id="order-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div style="font-family:var(--font-display);font-size:22px;letter-spacing:2px">Order Details</div>
+        <button class="modal-close" onclick="closeOrderModal()">✕</button>
       </div>
-      <div class="form-group"><label>Items</label><p id="order-detail-items" class="muted">-</p></div>
-      <div class="form-group"><label>Notes</label><p id="order-detail-notes" class="muted">-</p></div>
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="stat-label">Order</div>
+            <div class="detail-value" id="order-detail-id">#SF-0000</div>
+          </div>
+          <div class="detail-card">
+            <div class="stat-label">Customer</div>
+            <div class="detail-value" id="order-detail-customer">-</div>
+          </div>
+          <div class="detail-card">
+            <div class="stat-label">Shipper</div>
+            <div class="detail-value" id="order-detail-shipper">-</div>
+          </div>
+          <div class="detail-card">
+            <div class="muted">Subtotal</div>
+            <div class="detail-value" id="order-detail-subtotal">$0.00</div>
+          </div>
+          <div class="detail-card">
+            <div class="muted">Shipping</div>
+            <div class="detail-value" id="order-detail-shipping">$0.00</div>
+          </div>
+          <div class="detail-card">
+            <div class="muted">Total</div>
+            <div class="detail-value" style="color:var(--red-light)" id="order-detail-total">$0.00</div>
+          </div>
+          <div class="detail-card">
+            <div class="stat-label">Status</div>
+            <div class="detail-value" id="order-detail-status">pending</div>
+          </div>
+          <div class="detail-card">
+            <div class="stat-label">Placed</div>
+            <div class="detail-value" id="order-detail-date">-</div>
+          </div>
+        </div>
+        <div class="form-group"><label>Items</label>
+          <p id="order-detail-items" class="muted">-</p>
+        </div>
+        <div class="form-group"><label>Notes</label>
+          <p id="order-detail-notes" class="muted">-</p>
+        </div>
+
+      </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="/static/js/supabase-web.js"></script>
-<script src="/static/js/api-client.js"></script>
-<script src="/static/js/admin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/static/js/supabase-web.js"></script>
+  <script src="/static/js/api-client.js"></script>
+  <script src="/static/js/admin.js"></script>
 </body>
+
 </html>

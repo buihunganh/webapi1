@@ -245,12 +245,12 @@ class APIClient {
    * Update order status
    * POST /api/orders/{id}/status
    */
-  static async updateOrderStatus(orderId, status) {
+  static async updateOrderStatus(orderId, status, shipperId = null) {
     try {
       const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, shipper_id: shipperId }),
       });
       const text = await res.text();
       if (!text) throw new Error('Empty response from server');
@@ -316,6 +316,28 @@ class APIClient {
       throw new Error(data.error || 'Failed to update product image');
     }
     return data;
+  }
+
+  /**
+   * Update shipper real-time location
+   * POST /api/orders/{id}/location
+   */
+  static async updateShipperLocation(orderId, lat, lng) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
+      });
+      if (!res.ok) {
+        console.warn('[APIClient] Location sync failed:', res.status);
+      }
+      return { ok: res.ok };
+    } catch (err) {
+      // Don't throw for location updates to keep simulation running
+      console.warn('[APIClient] Location update network error:', err);
+      return { ok: false, error: err.message };
+    }
   }
 }
 

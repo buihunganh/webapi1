@@ -1,12 +1,22 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
+from dotenv import load_dotenv
 from controllers.admin_controller import admin_bp
 from controllers.admin_api_controller import admin_api_bp
 from controllers.shipper_controller import shipper_bp
 from controllers.customer_controller import customer_bp
 
+# Load environment variables from .env
+load_dotenv()
+
 # Khởi động Server và nạp các Controllers
 app = Flask(__name__)
+
+# Provide Mapbox token to all templates
+@app.context_processor
+def inject_mapbox_token():
+    return dict(mapbox_access_token=os.getenv('MAPBOX_ACCESS_TOKEN'))
 
 # Enable CORS for all routes (allow frontend to call API)
 CORS(app, resources={r"/api/*": {"origins": "*"}})

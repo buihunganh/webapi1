@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shipper Dashboard – ShisaFood</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@400;700;900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
   <style>
     /* ── SHIPPER LAYOUT ── */
     .shipper-layout {
@@ -19,29 +24,53 @@
     }
 
     /* ── SHIPPER SIDEBAR ── */
-    .s-sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .s-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
     .s-profile-card {
       background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
       padding: 24px;
       text-align: center;
     }
 
     .s-avatar {
-      width: 72px; height: 72px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--red), #3D0008);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 32px;
       margin: 0 auto 12px;
-      border: 3px solid rgba(232,0,13,0.4);
+      border: 3px solid rgba(232, 0, 13, 0.4);
     }
 
-    .s-name { font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; }
-    .s-role { font-family: var(--font-cond); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-top: 2px; }
-    .s-zone { font-size: 13px; color: var(--gray-text); margin-top: 6px; }
+    .s-name {
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 2px;
+    }
+
+    .s-role {
+      font-family: var(--font-cond);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .s-zone {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 6px;
+    }
 
     .s-status-toggle {
       display: flex;
@@ -49,38 +78,64 @@
       justify-content: space-between;
       margin-top: 16px;
       padding: 12px 16px;
-      background: rgba(255,255,255,0.04);
+      background: rgba(255, 255, 255, 0.04);
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    .s-status-label { font-family: var(--font-cond); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .s-status-label {
+      font-family: var(--font-cond);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
 
     .toggle-switch {
       position: relative;
-      width: 48px; height: 26px;
+      width: 48px;
+      height: 26px;
       cursor: pointer;
     }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
     .toggle-slider {
-      position: absolute; inset: 0;
+      position: absolute;
+      inset: 0;
       background: var(--gray-mid);
       border-radius: 13px;
       transition: var(--transition);
     }
+
     .toggle-slider::before {
       position: absolute;
       content: '';
-      height: 20px; width: 20px;
-      left: 3px; top: 3px;
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      top: 3px;
       background: white;
       border-radius: 50%;
       transition: var(--transition);
     }
-    input:checked + .toggle-slider { background: var(--success); }
-    input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    input:checked+.toggle-slider {
+      background: var(--success);
+    }
+
+    input:checked+.toggle-slider::before {
+      transform: translateX(22px);
+    }
 
     /* ── MINI STATS ── */
+    .is-hidden {
+      display: none !important;
+    }
+
     .s-stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -89,69 +144,147 @@
 
     .s-mini-stat {
       background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 12px;
       padding: 16px;
       text-align: center;
       transition: var(--transition);
     }
-    .s-mini-stat:hover { border-color: rgba(232,0,13,0.3); }
-    .s-mini-icon { font-size: 24px; margin-bottom: 8px; }
-    .s-mini-val { font-family: var(--font-display); font-size: 28px; color: var(--white); line-height: 1; }
-    .s-mini-label { font-family: var(--font-cond); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-text); margin-top: 4px; }
+
+    .s-mini-stat:hover {
+      border-color: rgba(232, 0, 13, 0.3);
+    }
+
+    .s-mini-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .s-mini-val {
+      font-family: var(--font-display);
+      font-size: 28px;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .s-mini-label {
+      font-family: var(--font-cond);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
 
     /* ── EARNINGS CARD ── */
     .s-earnings-card {
-      background: linear-gradient(135deg, rgba(232,0,13,0.12), rgba(61,0,8,0.4));
-      border: 1px solid rgba(232,0,13,0.2);
+      background: linear-gradient(135deg, rgba(232, 0, 13, 0.12), rgba(61, 0, 8, 0.4));
+      border: 1px solid rgba(232, 0, 13, 0.2);
       border-radius: 16px;
       padding: 20px;
     }
-    .s-earnings-label { font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--red-light); margin-bottom: 6px; }
-    .s-earnings-val { font-family: var(--font-display); font-size: 42px; letter-spacing: 2px; line-height: 1; }
-    .s-earnings-sub { font-size: 13px; color: var(--gray-text); margin-top: 4px; }
+
+    .s-earnings-label {
+      font-family: var(--font-cond);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--red-light);
+      margin-bottom: 6px;
+    }
+
+    .s-earnings-val {
+      font-family: var(--font-display);
+      font-size: 42px;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .s-earnings-sub {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
 
     /* ── MAIN AREA ── */
-    .s-main { display: flex; flex-direction: column; gap: 20px; }
+    .s-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
     /* ── ORDER STATUS TABS ── */
     .s-tabs {
-      display: flex; gap: 4px;
-      background: rgba(255,255,255,0.04);
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
       border-radius: 10px;
       padding: 4px;
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       width: fit-content;
     }
 
     .s-tab {
-      font-family: var(--font-cond); font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      padding: 9px 18px; border-radius: 7px; cursor: pointer;
-      color: rgba(255,255,255,0.5); transition: var(--transition);
-      background: none; border: none;
+      font-family: var(--font-cond);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      border-radius: 7px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.5);
+      transition: var(--transition);
+      background: none;
+      border: none;
     }
-    .s-tab.active { background: var(--red); color: var(--white); }
-    .s-tab:hover:not(.active) { color: var(--white); background: rgba(255,255,255,0.06); }
+
+    .s-tab.active {
+      background: var(--red);
+      color: var(--white);
+    }
+
+    .s-tab:hover:not(.active) {
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.06);
+    }
 
     /* ── DELIVERY CARD ── */
     .delivery-card {
       background: var(--gray-dark);
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 14px;
       padding: 0;
       overflow: hidden;
       transition: var(--transition);
     }
-    .delivery-card:hover { border-color: rgba(232,0,13,0.3); }
+
+    .delivery-card:hover {
+      border-color: rgba(232, 0, 13, 0.3);
+    }
+
     .delivery-card-header {
       padding: 14px 20px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      flex-wrap: wrap; gap: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .delivery-order-id { font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; color: var(--red-light); }
-    .delivery-card-body { padding: 18px 20px; }
+
+    .delivery-order-id {
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: 2px;
+      color: var(--red-light);
+    }
+
+    .delivery-card-body {
+      padding: 18px 20px;
+    }
 
     .delivery-info-grid {
       display: grid;
@@ -160,166 +293,386 @@
       margin-bottom: 16px;
     }
 
-    .d-info-block { }
-    .d-info-label { font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-text); margin-bottom: 4px; }
-    .d-info-val { font-size: 14px; color: var(--white); line-height: 1.4; }
+    .d-info-block {}
 
-    .delivery-items { margin-bottom: 14px; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 13px; color: rgba(255,255,255,0.7); }
-    .delivery-items-title { font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--gray-text); margin-bottom: 6px; }
+    .d-info-label {
+      font-family: var(--font-cond);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-text);
+      margin-bottom: 4px;
+    }
 
-    .delivery-actions { display: flex; gap: 10px; }
-    .sbadge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px; font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
-    .sbadge-warning { background: rgba(255,184,0,0.15); color: var(--gold); }
-    .sbadge-info { background: rgba(99,179,237,0.15); color: #63B3ED; }
-    .sbadge-success { background: rgba(34,197,94,0.15); color: #4ADE80; }
-    .sbadge-danger { background: rgba(232,0,13,0.15); color: var(--red-light); }
+    .d-info-val {
+      font-size: 14px;
+      color: var(--white);
+      line-height: 1.4;
+    }
+
+    .delivery-items {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .delivery-items-title {
+      font-family: var(--font-cond);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gray-text);
+      margin-bottom: 6px;
+    }
+
+    .delivery-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .sbadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-family: var(--font-cond);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .sbadge-warning {
+      background: rgba(255, 184, 0, 0.15);
+      color: var(--gold);
+    }
+
+    .sbadge-info {
+      background: rgba(99, 179, 237, 0.15);
+      color: #63B3ED;
+    }
+
+    .sbadge-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ADE80;
+    }
+
+    .sbadge-danger {
+      background: rgba(232, 0, 13, 0.15);
+      color: var(--red-light);
+    }
 
     /* ── HISTORY TABLE ── */
-    .s-table-wrap { background: var(--gray-dark); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; overflow: hidden; }
-    .s-table { width: 100%; border-collapse: collapse; }
-    .s-table th { font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-text); padding: 13px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .s-table td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
-    .s-table tr:last-child td { border-bottom: none; }
-    .s-table tr:hover td { background: rgba(255,255,255,0.025); }
+    .s-table-wrap {
+      background: var(--gray-dark);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .s-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .s-table th {
+      font-family: var(--font-cond);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-text);
+      padding: 13px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .s-table td {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+    }
+
+    .s-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .s-table tr:hover td {
+      background: rgba(255, 255, 255, 0.025);
+    }
 
     /* ── SECTION HEADER ── */
-    .s-section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
-    .s-section-title { font-family: var(--font-display); font-size: 24px; letter-spacing: 2px; }
+    .s-section-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .s-section-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: 2px;
+    }
 
     /* ── PANEL ── */
-    .s-panel { display: none; }
-    .s-panel.active { display: flex; flex-direction: column; gap: 14px; }
+    .s-panel {
+      display: none;
+    }
+
+    .s-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
-      .shipper-layout { grid-template-columns: 1fr; }
-      .s-sidebar { display: grid; grid-template-columns: 1fr 1fr; }
+      .shipper-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .s-sidebar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
     }
+
     @media (max-width: 600px) {
-      .shipper-layout { padding: calc(var(--nav-h) + 16px) 16px 24px; }
-      .s-sidebar { grid-template-columns: 1fr; }
-      .delivery-info-grid { grid-template-columns: 1fr; }
-      .s-stats-grid { grid-template-columns: repeat(2,1fr); }
+      .shipper-layout {
+        padding: calc(var(--nav-h) + 16px) 16px 24px;
+      }
+
+      .s-sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .delivery-info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .s-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
+
 <body>
 
-<!-- ── NAVBAR ── -->
-<nav id="navbar" class="scrolled">
-  <div class="container">
-    <div class="nav-inner">
-      <a href="/index.html" class="nav-logo">SHISA<span>FOOD</span><div class="logo-dot"></div></a>
-      <div style="font-family:var(--font-cond);font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold)">🛵 SHIPPER PORTAL</div>
-      <div class="nav-actions">
-        <div style="font-family:var(--font-cond);font-size:13px;color:var(--gray-text)" id="s-clock"></div>
-        <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="logout()">🚪 Logout</button>
-      </div>
-    </div>
-  </div>
-</nav>
-
-<div id="toast-container"></div>
-
-<!-- ── LAYOUT ── -->
-<div class="shipper-layout">
-
-  <!-- SIDEBAR -->
-  <div class="s-sidebar">
-
-    <!-- PROFILE -->
-    <div class="s-profile-card">
-      <div class="s-avatar">🛵</div>
-      <div class="s-name" id="s-name">SHIPPER</div>
-      <div class="s-role">⭐ SHIPPER</div>
-      <!-- ✗ REMOVED: zone display (not in database) -->
-      <div class="s-status-toggle">
-        <div>
-          <div class="s-status-label" id="status-label">🟢 ONLINE</div>
-          <div style="font-size:12px;color:var(--gray-text);margin-top:2px">Toggle order availability</div>
+  <!-- ── NAVBAR ── -->
+  <nav id="navbar" class="scrolled">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/index.html" class="nav-logo">SHISA<span>FOOD</span>
+          <div class="logo-dot"></div>
+        </a>
+        <div
+          style="font-family:var(--font-cond);font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold)">
+          🛵 SHIPPER PORTAL</div>
+        <div class="nav-actions">
+          <div style="font-family:var(--font-cond);font-size:13px;color:var(--gray-text)" id="s-clock"></div>
+          <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="logout()">🚪 Logout</button>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="status-toggle" checked onchange="toggleStatus()">
-          <span class="toggle-slider"></span>
-        </label>
       </div>
     </div>
+  </nav>
 
-    <!-- TODAY EARNINGS -->
-    <div class="s-earnings-card">
-      <div class="s-earnings-label">💰 Today's Earnings</div>
-      <div class="s-earnings-val" id="today-earnings">$0</div>
-      <div class="s-earnings-sub" id="completed-today">0 completed orders</div>
+  <div id="toast-container"></div>
+
+  <!-- ── LAYOUT ── -->
+  <div class="shipper-layout">
+
+    <!-- SIDEBAR -->
+    <div class="s-sidebar">
+
+      <!-- PROFILE -->
+      <div class="s-profile-card">
+        <div class="s-avatar">🛵</div>
+        <div class="s-name" id="s-name">SHIPPER</div>
+        <div class="s-role">⭐ SHIPPER</div>
+        <!-- ✗ REMOVED: zone display (not in database) -->
+        <div class="s-status-toggle">
+          <div>
+            <div class="s-status-label" id="status-label">🟢 ONLINE</div>
+            <div style="font-size:12px;color:var(--gray-text);margin-top:2px">Toggle order availability</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="status-toggle" checked onchange="toggleStatus()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- TODAY EARNINGS -->
+      <div class="s-earnings-card">
+        <div class="s-earnings-label">💰 Today's Earnings</div>
+        <div class="s-earnings-val" id="today-earnings">$0</div>
+        <div class="s-earnings-sub" id="completed-today">0 completed orders</div>
+      </div>
+
+      <!-- MINI STATS -->
+      <div class="s-stats-grid">
+        <div class="s-mini-stat">
+          <div class="s-mini-icon">📦</div>
+          <div class="s-mini-val" id="total-deliveries">0</div>
+          <div class="s-mini-label">Total Orders</div>
+        </div>
+        <div class="s-mini-stat">
+          <div class="s-mini-icon">⭐</div>
+          <div class="s-mini-val" id="avg-rating">5.0</div>
+          <div class="s-mini-label">Avg Rating</div>
+        </div>
+        <div class="s-mini-stat">
+          <div class="s-mini-icon">⚡</div>
+          <div class="s-mini-val" id="avg-time">24</div>
+          <div class="s-mini-label">Avg Mins/Order</div>
+        </div>
+        <div class="s-mini-stat">
+          <div class="s-mini-icon">💵</div>
+          <div class="s-mini-val" id="total-earnings">$0</div>
+          <div class="s-mini-label">Total Earnings</div>
+        </div>
+      </div>
+
+      <!-- QUICK NAV -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px"
+          onclick="shipperToast('Map feature is coming soon!','info')">🗺️ Open Map</button>
+        <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px"
+          onclick="shipperToast('Contacting support center...','info')">📞 Contact Support</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:12px;color:var(--red-light)"
+          onclick="logout()">🚪 Logout</button>
+      </div>
+
     </div>
 
-    <!-- MINI STATS -->
-    <div class="s-stats-grid">
-      <div class="s-mini-stat">
-        <div class="s-mini-icon">📦</div>
-        <div class="s-mini-val" id="total-deliveries">0</div>
-        <div class="s-mini-label">Total Orders</div>
-      </div>
-      <div class="s-mini-stat">
-        <div class="s-mini-icon">⭐</div>
-        <div class="s-mini-val" id="avg-rating">5.0</div>
-        <div class="s-mini-label">Avg Rating</div>
-      </div>
-      <div class="s-mini-stat">
-        <div class="s-mini-icon">⚡</div>
-        <div class="s-mini-val" id="avg-time">24</div>
-        <div class="s-mini-label">Avg Mins/Order</div>
-      </div>
-      <div class="s-mini-stat">
-        <div class="s-mini-icon">💵</div>
-        <div class="s-mini-val" id="total-earnings">$0</div>
-        <div class="s-mini-label">Total Earnings</div>
-      </div>
-    </div>
+    <!-- MAIN CONTENT -->
+    <div class="s-main">
 
-    <!-- QUICK NAV -->
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="shipperToast('Map feature is coming soon!','info')">🗺️ Open Map</button>
-      <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:12px" onclick="shipperToast('Contacting support center...','info')">📞 Contact Support</button>
-      <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;gap:12px;color:var(--red-light)" onclick="logout()">🚪 Logout</button>
-    </div>
+      <!-- ORDER STATUS TABS -->
+      <div class="s-tabs">
+        <button class="s-tab active" onclick="switchShipTab('new',this)">🔔 New Orders <span id="badge-new"
+            style="background:var(--red);color:white;padding:0 6px;border-radius:10px;font-size:11px;margin-left:4px">0</span></button>
+        <button class="s-tab" onclick="switchShipTab('active',this)">🚀 In Delivery</button>
+        <button class="s-tab" onclick="switchShipTab('done',this)">✅ Completed</button>
+      </div>
 
+      <!-- TAB: NEW ORDERS -->
+      <div class="s-panel active" id="stab-new"></div>
+
+      <!-- TAB: ACTIVE DELIVERY -->
+      <div class="s-panel" id="stab-active">
+        <div class="s-section-hdr">
+          <div class="admin-page-title">ACTIVE DELIVERIES</div>
+          <div class="simulation-config"
+            style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1)">
+            <div style="font-family:var(--font-cond);font-size:11px;letter-spacing:1px;color:var(--gray-text)">🚀 SPEED
+            </div>
+            <select id="sim-speed-select" class="form-control"
+              style="width:100px;height:32px;font-size:12px;background:var(--gray-darkish);border-color:rgba(255,255,255,0.1)">
+              <option value="20">20 km/h</option>
+              <option value="40" selected>40 km/h</option>
+              <option value="60">60 km/h</option>
+              <option value="80">80 km/h</option>
+              <option value="120">120 km/h (Turbo)</option>
+            </select>
+          </div>
+        </div>
+        <div id="active-orders-list" class="s-main"></div>
+      </div>
+
+      <!-- TAB: DONE -->
+      <div class="s-panel" id="stab-done">
+        <div class="s-section-hdr">
+          <div class="s-section-title">DELIVERY HISTORY</div>
+        </div>
+        <div class="s-table-wrap">
+          <table class="s-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Address</th>
+                <th>Value</th>
+                <th>Time</th>
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- MAIN CONTENT -->
-  <div class="s-main">
-
-    <!-- ORDER STATUS TABS -->
-    <div class="s-tabs">
-      <button class="s-tab active" onclick="switchShipTab('new',this)">🔔 New Orders <span id="badge-new" style="background:var(--red);color:white;padding:0 6px;border-radius:10px;font-size:11px;margin-left:4px">0</span></button>
-      <button class="s-tab" onclick="switchShipTab('active',this)">🚀 In Delivery</button>
-      <button class="s-tab" onclick="switchShipTab('done',this)">✅ Completed</button>
-    </div>
-
-    <!-- TAB: NEW ORDERS -->
-    <div class="s-panel active" id="stab-new"></div>
-
-    <!-- TAB: ACTIVE DELIVERY -->
-    <div class="s-panel" id="stab-active"></div>
-
-    <!-- TAB: DONE -->
-    <div class="s-panel" id="stab-done">
-      <div class="s-section-hdr">
-        <div class="s-section-title">DELIVERY HISTORY</div>
+  <!-- ── SIMULATION MODAL ── -->
+  <div id="simulation-modal" class="modal-overlay hidden" style="z-index: 2000; background: rgba(0,0,0,0.9);">
+    <div class="modal-content"
+      style="max-width: 900px; width: 95%; height: 80vh; padding: 0; overflow: hidden; position: relative; border: 1px solid var(--red);">
+      <div id="simulation-map" style="width: 100%; height: 100%;"></div>
+      <div
+        style="position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none;">
+        <div
+          style="background: rgba(0,0,0,0.85); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--red); pointer-events: auto;">
+          <div style="font-family: var(--font-cond); font-size: 14px; color: var(--red-light); letter-spacing: 2px;">
+            DELIVERY IN PROGRESS</div>
+          <div id="sim-order-id" style="font-family: var(--font-display); font-size: 24px; margin-top: 5px;">#SF-0001
+          </div>
+          <div id="sim-eta" style="font-size: 14px; color: var(--gray-text); margin-top: 5px;">ETA: 12 mins</div>
+        </div>
+        <button class="btn btn-ghost" onclick="closeSimulation()"
+          style="background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.1); pointer-events: auto;">Close
+          View</button>
       </div>
-      <div class="s-table-wrap">
-        <table class="s-table">
-          <thead><tr><th>Order ID</th><th>Customer</th><th>Address</th><th>Value</th><th>Time</th><th>Rating</th></tr></thead>
-          <tbody id="history-body"></tbody>
-        </table>
+
+      <!-- DIAGNOSTIC HUD -->
+      <div id="sim-hud"
+        style="position: absolute; bottom: 80px; left: 20px; background: rgba(0,0,0,0.85); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); display: flex; gap: 24px;">
+        <div style="text-align: center;">
+          <div style="font-family: var(--font-cond); font-size: 10px; color: var(--gray-text); letter-spacing: 1px;">
+            TRIP METERS</div>
+          <div id="hud-total-m" style="font-family: var(--font-display); font-size: 20px;">0</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-family: var(--font-cond); font-size: 10px; color: var(--gold); letter-spacing: 1px;">PROGRESS
+          </div>
+          <div id="hud-pct" style="font-family: var(--font-display); font-size: 20px;">0%</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-family: var(--font-cond); font-size: 10px; color: var(--red-light); letter-spacing: 1px;">
+            ELAPSED</div>
+          <div id="hud-elapsed" style="font-family: var(--font-display); font-size: 20px;">0s</div>
+        </div>
+      </div>
+
+      <div id="sim-complete-overlay" class="is-hidden"
+        style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 101;">
+        <div
+          style="text-align: center; background: var(--gray-dark); padding: 40px; border-radius: 24px; border: 2px solid var(--success); box-shadow: 0 0 50px rgba(74,222,128,0.2);">
+          <div style="font-size: 64px; margin-bottom: 20px;">🏁</div>
+          <div style="font-family: var(--font-display); font-size: 32px; color: var(--white); margin-bottom: 10px;">
+            ARRIVED!</div>
+          <p style="color: var(--gray-text); margin-bottom: 24px;">You have reached the customer's location.</p>
+          <button id="finish-btn" class="btn btn-primary" style="padding: 12px 40px;"
+            onclick="finishSimulation()">COMPLETE ORDER</button>
+        </div>
       </div>
     </div>
-
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="/static/js/supabase-web.js"></script>
-<script src="/static/js/api-client.js"></script>
-<script src="/static/js/shipper.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/static/js/supabase-web.js"></script>
+  <script src="/static/js/api-client.js"></script>
+  <script src="/static/js/shipper.js"></script>
 </body>
+
 </html>

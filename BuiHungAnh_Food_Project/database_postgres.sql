@@ -156,7 +156,13 @@ CREATE TABLE Orders (
     Discount NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (Discount >= 0),
     TotalAmount NUMERIC(18,2) GENERATED ALWAYS AS ((SubTotal + ShippingFee) - Discount) STORED,
     OrderStatus VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (OrderStatus IN ('pending','waiting_for_shipper','shipping','completed','cancelled')),
-    Notes VARCHAR(255) NULL
+    Notes VARCHAR(255) NULL,
+    latitude DOUBLE PRECISION NULL,
+    longitude DOUBLE PRECISION NULL,
+    shipper_lat DOUBLE PRECISION NULL,
+    shipper_lng DOUBLE PRECISION NULL,
+    estimated_delivery_time VARCHAR(255) NULL,
+    actual_delivery_start TIMESTAMPTZ NULL
 );
 
 CREATE TABLE OrderDetails (
@@ -275,3 +281,17 @@ INSERT INTO ProductReviews (ProductID, UserID, Stars, ReviewText)
 VALUES
 (1, 3, 5, 'Amazing spicy flavor!'),
 (2, 3, 4, 'Great pizza and crust.');
+
+/* =========================================================
+   Migrations / Schema Updates (Run in Supabase SQL Editor)
+   ========================================================= */
+
+-- 1. Add delivery columns to Orders table
+-- ALTER TABLE Orders ADD COLUMN latitude DOUBLE PRECISION;
+-- ALTER TABLE Orders ADD COLUMN longitude DOUBLE PRECISION;
+-- ALTER TABLE Orders ADD COLUMN shipper_lat DOUBLE PRECISION;
+-- ALTER TABLE Orders ADD COLUMN shipper_lng DOUBLE PRECISION;
+-- ALTER TABLE Orders ADD COLUMN estimated_delivery_time VARCHAR(255);
+-- ALTER TABLE Orders ADD COLUMN actual_delivery_start TIMESTAMP WITH TIME ZONE;
+-- ALTER TABLE Orders DROP CONSTRAINT IF EXISTS orders_orderstatus_check;
+-- ALTER TABLE Orders ADD CONSTRAINT orders_orderstatus_check CHECK (OrderStatus IN ('pending','waiting_for_shipper','shipping','completed','cancelled'));
