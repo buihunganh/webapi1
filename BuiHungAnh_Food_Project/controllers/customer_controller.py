@@ -33,7 +33,7 @@ def _serialize_auth_user(user: dict) -> dict:
 @customer_bp.route('/index.html')
 def homepage_file():
     """Serve root landing page first."""
-    return send_from_directory(current_app.root_path, 'index.html')
+    return render_template('index.html')
 
 
 @customer_bp.route('/customer')
