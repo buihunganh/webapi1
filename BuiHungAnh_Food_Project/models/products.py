@@ -59,11 +59,8 @@ def update_product_metadata(product_id, **kwargs):
     if 'description' in kwargs and kwargs['description'] is not None:
         updates['description'] = kwargs['description']
     
-    # emoji/tags columns do NOT exist in DB — store emoji in imageurl instead
-    if 'emoji' in kwargs and kwargs['emoji']:
-        emoji_val = str(kwargs['emoji'])
-        if not emoji_val.startswith('http'):
-            updates['imageurl'] = emoji_val
+    # Do not map emoji to imageurl during metadata edits.
+    # Keep imageurl unchanged unless an explicit image_url is provided.
     
     if 'image_url' in kwargs and kwargs['image_url']:
         updates['imageurl'] = kwargs['image_url']

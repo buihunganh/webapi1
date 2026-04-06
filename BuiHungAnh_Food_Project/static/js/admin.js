@@ -241,7 +241,7 @@ async function loadAdminDataFromAPI() {
       price: Number(p.price || 0),
       available: p.isactive !== false,
       imageurl: p.imageurl || "",
-      emoji: p.emoji || "🍲",
+      emoji: typeof p.emoji === "string" ? p.emoji : "",
     }));
 
     // Map orders first to build aggregates for users & shippers
@@ -653,7 +653,7 @@ function openProductModal(id = null) {
       document.getElementById("p-cat").value =
         product.categoryid || product.category || "";
       document.getElementById("p-emoji").value = product.emoji || "";
-      document.getElementById("p-avail").value = product.isactive
+      document.getElementById("p-avail").value = product.available
         ? "true"
         : "false";
       document.getElementById("p-tags").value = product.tags || "";
