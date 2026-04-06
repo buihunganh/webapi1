@@ -398,7 +398,7 @@ function initSimulationMap(orders) {
     const storeEl = document.createElement('div');
     storeEl.className = 'store-marker';
     storeEl.style.fontSize = '32px';
-    storeEl.innerHTML = '🏬';
+    storeEl.innerHTML = '';
     new mapboxgl.Marker(storeEl)
         .setLngLat([STORE_COORDS.lng, STORE_COORDS.lat])
         .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML('<h3>ShisaFood</h3><p>Order departs here</p>'))
