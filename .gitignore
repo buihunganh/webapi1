@@ -16,3 +16,7 @@
 local.properties
 .env
 .env.*
+hs_err_pid*.log
+replay_pid*.log
+orders_debug.json
+orders_sample.json
