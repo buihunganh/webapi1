@@ -1,0 +1,510 @@
+/**
+ * API Client - Kết nối Frontend với Backend API
+ * Base URL: http://localhost:5500/api
+ */
+
+function resolveApiBase() {
+  if (typeof window === "undefined") return "/api";
+
+  const { protocol, hostname, port, host } = window.location;
+  // When opened with VS Code Live Server (commonly 5501), call Flask backend on 5500.
+  if (port === "5501") {
+    return `${protocol}//${hostname}:5500/api`;
+  }
+
+  return `${protocol}//${host}/api`;
+}
+
+const API_BASE = resolveApiBase();
+const SESSION_USER_KEY = "shisa_current_user";
+
+function getCurrentSessionUser() {
+  try {
+    const raw = localStorage.getItem(SESSION_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn("Invalid session user in localStorage:", err);
+    return null;
+  }
+}
+
+function getAuthHeaders() {
+  const user = getCurrentSessionUser();
+  if (!user) return {};
+
+  const headers = {};
+  if (user.id != null) headers["X-User-Id"] = String(user.id);
+  if (user.email) headers["X-User-Email"] = String(user.email).toLowerCase();
+  return headers;
+}
+
+function appendAuthQuery(url) {
+  const user = getCurrentSessionUser();
+  if (!user) return url;
+  const parsed = new URL(url, window.location.origin);
+  if (user.id != null && !parsed.searchParams.has("user_id")) {
+    parsed.searchParams.set("user_id", String(user.id));
+  }
+  if (user.email && !parsed.searchParams.has("email")) {
+    parsed.searchParams.set("email", String(user.email).toLowerCase());
+  }
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+class APIClient {
+  /**
+   * Fetch user login
+   * POST /api/auth/login
+   */
+  static async login(email, password) {
+    console.log("[APIClient] login() called for:", email);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      console.log("[APIClient] login response status:", res.status);
+      const text = await res.text();
+      console.log("[APIClient] login response text:", text.substring(0, 100));
+      if (!text) throw new Error("Empty response from server");
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.error || "Login failed");
+      console.log("[APIClient] login success:", data);
+      return data; // { ok: true, user: {...} }
+    } catch (err) {
+      console.error("[APIClient] Login error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Register new user
+   * POST /api/auth/register
+   */
+  static async register(email, fullName, phone, password) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, full_name: fullName, phone, password }),
+      });
+      const text = await res.text();
+      if (!text) throw new Error("Empty response from server");
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.error || "Register failed");
+      return data;
+    } catch (err) {
+      console.error("Register error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Get all users with pagination
+   * GET /api/users?limit=N
+   */
+  static async getUsers(limit = 100) {
+    try {
+      const res = await fetch(`${API_BASE}/users?limit=${limit}`);
+      const text = await res.text();
+      if (!text) return [];
+      const data = JSON.parse(text);
+      if (!res.ok) {
+        console.warn("Get users error:", data.error);
+        return [];
+      }
+      return data.items || [];
+    } catch (err) {
+      console.error("Get users error:", err);
+      return [];
+    }
+  }
+
+  /**
+   * Get all products with pagination
+   * GET /api/products?limit=N
+   */
+  static async getProducts(limit = 100) {
+    try {
+      const res = await fetch(`${API_BASE}/products?limit=${limit}`);
+      const text = await res.text();
+      if (!text) return [];
+      const data = JSON.parse(text);
+      if (!res.ok) {
+        console.warn("Get products error:", data.error);
+        return [];
+      }
+      return data.items || [];
+    } catch (err) {
+      console.error("Get products error:", err);
+      return [];
+    }
+  }
+
+  /**
+   * Get all orders with pagination
+   * GET /api/orders?limit=N
+   */
+  static async getOrders(limit = 100) {
+    try {
+      const url = appendAuthQuery(`${API_BASE}/orders?limit=${limit}`);
+      const res = await fetch(url, {
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+      const text = await res.text();
+      if (!text) return [];
+      const data = JSON.parse(text);
+      if (!res.ok) {
+        console.warn("Get orders error:", data.message || data.error);
+        return [];
+      }
+      return data.items || [];
+    } catch (err) {
+      console.error("Get orders error:", err);
+      return [];
+    }
+  }
+
+  /**
+   * Create a new order (storefront checkout)
+   * POST /api/orders
+   */
+  static async createOrder(payload) {
+    try {
+      const mergedPayload = { ...(payload || {}) };
+      const sessionUser = getCurrentSessionUser();
+      if (!mergedPayload.customer_id && sessionUser?.id) {
+        mergedPayload.customer_id = Number(sessionUser.id);
+      }
+
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(mergedPayload),
+      });
+      const text = await res.text();
+      if (!text) throw new Error("Empty response from server");
+      const data = JSON.parse(text);
+      if (!res.ok || data.ok === false || data.success === false) {
+        throw new Error(data.message || data.error || "Failed to create order");
+      }
+      return data.order || data;
+    } catch (err) {
+      console.error("Create order error:", err);
+      throw err;
+    }
+  }
+
+  static async deleteProduct(productId) {
+    const res = await fetch(`${API_BASE}/products/${productId}`, {
+      method: "DELETE",
+    });
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || "Failed to delete product");
+    }
+    return data;
+  }
+
+
+  /**
+   * Admin-only list users by role.
+   * GET /api/admin/users?role=customer&limit=200
+   */
+  static async getAdminUsers(role, limit = 200) {
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", limit);
+      if (role) params.set("role", role);
+      const res = await fetch(`${API_BASE}/admin/users?${params.toString()}`);
+      const text = await res.text();
+      if (!text) return [];
+      const data = JSON.parse(text);
+      if (!res.ok || data.ok === false) {
+        console.warn("Get admin users error:", data.error);
+        return [];
+      }
+      return data.items || [];
+    } catch (err) {
+      console.error("Get admin users error:", err);
+      return [];
+    }
+  }
+
+  /**
+   * Create customer/shipper account
+   */
+  static async createAdminUser(payload) {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || "Failed to create user");
+    }
+    return data.user;
+  }
+
+  /**
+   * Update customer/shipper account
+   */
+  static async updateAdminUser(userId, payload) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || "Failed to update user");
+    }
+    return data.user;
+  }
+
+  static async deleteAdminUser(userId) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "DELETE",
+    });
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || "Failed to delete user");
+    }
+    return data;
+  }
+
+  /**
+   * Get health check
+   * GET /api/health
+   */
+  static async health() {
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      const data = await res.json();
+      return data; // { ok: true, database: 'postgres', server: '...' }
+    } catch (err) {
+      console.error("Health check error:", err);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  /**
+   * Update order status
+   * POST /api/orders/{id}/status
+   */
+  static async updateOrderStatus(orderId, status, shipperId = null) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ status, shipper_id: shipperId }),
+      });
+      const text = await res.text();
+      if (!text) throw new Error("Empty response from server");
+      const data = JSON.parse(text);
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to update order");
+      return data;
+    } catch (err) {
+      console.error("Update order error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Get order detail by id
+   * GET /api/orders/{id}
+   */
+  static async getOrderById(orderId) {
+    try {
+      const url = appendAuthQuery(`${API_BASE}/orders/${orderId}`);
+      const res = await fetch(url, {
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+      const text = await res.text();
+      if (!text) throw new Error("Empty response from server");
+      const data = JSON.parse(text);
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Failed to get order detail");
+      }
+      return data.data || data;
+    } catch (err) {
+      console.error("Get order detail error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Get application profile by email
+   * GET /api/auth/profile?email=...
+   */
+  static async getAuthProfile(email) {
+    console.log("[APIClient] getAuthProfile() called for:", email);
+    try {
+      const encoded = encodeURIComponent(email || "");
+      const url = `${API_BASE}/auth/profile?email=${encoded}`;
+      console.log("[APIClient] calling:", url);
+      const res = await fetch(url, {
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+      console.log("[APIClient] auth profile response status:", res.status);
+
+      // Check if response is valid
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.log("[APIClient] auth profile error text:", errorText);
+        const data = errorText ? JSON.parse(errorText) : {};
+        throw new Error(
+          data.message || data.error || `HTTP ${res.status}: Failed to load user profile`,
+        );
+      }
+
+      const text = await res.text();
+      console.log(
+        "[APIClient] auth profile response text:",
+        text.substring(0, 100),
+      );
+      if (!text) throw new Error("Empty response from server");
+
+      const data = JSON.parse(text);
+      if (!data.ok)
+        throw new Error(data.message || data.error || "Failed to load user profile");
+      console.log("[APIClient] auth profile success:", data);
+      return data;
+    } catch (err) {
+      console.error("[APIClient] Auth profile error:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Update authenticated user profile
+   * PUT /api/auth/profile
+   */
+  static async updateProfile(payload) {
+    const res = await fetch(`${API_BASE}/auth/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(payload || {}),
+    });
+
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok) {
+      throw new Error(data.message || data.error || "Failed to update profile");
+    }
+    return data;
+  }
+
+  /**
+   * Persist product image URL
+   * POST /api/products/{id}/image
+   */
+  static async updateProductImage(productId, imageUrl) {
+    const res = await fetch(`${API_BASE}/products/${productId}/image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: imageUrl }),
+    });
+
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Failed to update product image");
+    }
+    return data;
+  }
+
+  /**
+   * Update product metadata
+   * POST /api/products/{id}
+   */
+  static async updateProductMetadata(productId, metadata) {
+    const res = await fetch(`${API_BASE}/products/${productId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(metadata),
+    });
+
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Failed to update product");
+    }
+    return data;
+  }
+
+  /**
+   * Create a new product
+   * POST /api/products
+   */
+  static async createProduct(metadata) {
+    const res = await fetch(`${API_BASE}/products`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(metadata),
+    });
+
+    const text = await res.text();
+    if (!text) throw new Error("Empty response from server");
+    const data = JSON.parse(text);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Failed to create product");
+    }
+    return data;
+  }
+
+  /**
+   * Update shipper real-time location
+   * POST /api/orders/{id}/location
+   */
+  static async updateShipperLocation(orderId, lat, lng) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${orderId}/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
+      });
+      if (!res.ok) {
+        console.warn('[APIClient] Location sync failed:', res.status);
+      }
+      return { ok: res.ok };
+    } catch (err) {
+      // Don't throw for location updates to keep simulation running
+      console.warn('[APIClient] Location update network error:', err);
+      return { ok: false, error: err.message };
+    }
+  }
+}
+
+// Export for use in other files
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = APIClient;
+}

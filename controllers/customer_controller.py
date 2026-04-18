@@ -1,0 +1,537 @@
+import os
+import traceback
+
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
+
+from controllers.api_common import APIError, api_error, assert_order_access, get_current_user, normalize_phone, require_non_empty_name
+from models.supabase_client import get_supabase
+from models.products import get_all_products, update_product_image_url, update_product_metadata, create_product, delete_product
+from models.orders import create_order, get_all_orders, get_order_by_id, get_order_items, get_order_payment, get_orders_for_user, update_order_status
+from models.users import get_all_users, get_user_by_email, get_user_by_id, hash_password, insert_user, update_user, verify_password
+
+customer_bp = Blueprint('customer', __name__)
+
+
+def _resolve_role(role_id: int) -> str:
+    if role_id == 1:
+        return 'admin'
+    if role_id == 2:
+        return 'shipper'
+    return 'customer'
+
+
+def _serialize_auth_user(user: dict) -> dict:
+    role_id = int(user.get('roleid') or 3)
+    return {
+        "id": user.get('userid'),
+        "name": user.get('fullname'),
+        "email": user.get('email'),
+        "phone": user.get('phone'),
+        "role": _resolve_role(role_id),
+        "role_id": role_id,
+    }
+
+
+def _serialize_order_detail(order: dict, items: list[dict], payment: dict | None) -> dict:
+    subtotal = float(order.get('subtotal') or 0)
+    shipping_fee = float(order.get('shippingfee') or 0)
+    discount = float(order.get('discount') or 0)
+    total_amount = float(order.get('totalamount') or (subtotal + shipping_fee - discount))
+
+    return {
+        "order": {
+            "id": order.get('orderid'),
+            "status": order.get('orderstatus'),
+            "order_date": order.get('orderdate'),
+            "delivered_date": order.get('delivereddate'),
+            "notes": order.get('notes'),
+            "delivery_phone": order.get('deliveryphone'),
+            "latitude": order.get('latitude'),
+            "longitude": order.get('longitude'),
+            "estimated_delivery_time": order.get('estimated_delivery_time'),
+        },
+        "customer": order.get('customer') or {
+            "id": order.get('customerid')
+        },
+        "address": order.get('address'),
+        "items": [
+            {
+                "order_detail_id": item.get('orderdetailid'),
+                "product_id": item.get('productid'),
+                "product_name": (item.get('product') or {}).get('productname'),
+                "product_image": (item.get('product') or {}).get('imageurl'),
+                "quantity": item.get('quantity'),
+                "unit_price": float(item.get('unitprice') or 0),
+                "line_total": float((item.get('quantity') or 0) * float(item.get('unitprice') or 0)),
+            }
+            for item in (items or [])
+        ],
+        "pricing": {
+            "subtotal": subtotal,
+            "shipping_fee": shipping_fee,
+            "discount": discount,
+            "total_amount": total_amount,
+            "payment": payment,
+        }
+    }
+
+@customer_bp.route('/')
+@customer_bp.route('/index.html')
+def homepage_file():
+    """Serve root landing page first."""
+    return render_template('index.html')
+
+
+@customer_bp.route('/customer')
+def customer_portal():
+    """Customer portal page."""
+    return render_template('customer/customer.html')
+
+
+@customer_bp.route('/api/health', methods=['GET'])
+def api_health():
+    """Health check app + database."""
+    try:
+        sb = get_supabase()
+        ping = sb.table('products').select('productid').limit(1).execute()
+        return jsonify({"ok": True, "database": "supabase", "rows_checked": len(ping.data or [])}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/config', methods=['GET'])
+def api_config():
+    """Expose non-secret frontend config values."""
+    supabase_url = os.getenv('SUPABASE_URL')
+    publishable_key = os.getenv('SUPABASE_PUBLISHABLE_KEY')
+
+    if not supabase_url or not publishable_key:
+        return jsonify({"ok": False, "error": "Supabase config is missing"}), 500
+
+    return jsonify({
+        "ok": True,
+        "supabase_url": supabase_url,
+        "supabase_publishable_key": publishable_key,
+    }), 200
+
+
+@customer_bp.route('/api/users', methods=['GET'])
+def api_users():
+    """List users for quick API checks."""
+    limit = request.args.get('limit', default=20, type=int)
+    limit = max(1, min(limit, 500))
+    data = get_all_users(limit)
+    return jsonify({"count": len(data), "items": data}), 200
+
+
+@customer_bp.route('/api/products', methods=['GET'])
+def api_products():
+    """List products for quick API checks."""
+    limit = request.args.get('limit', default=20, type=int)
+    limit = max(1, min(limit, 500))
+
+    data = get_all_products()[:limit]
+    return jsonify({"count": len(data), "items": data}), 200
+
+
+@customer_bp.route('/api/products', methods=['POST'])
+def api_create_product():
+    """Create a new product."""
+    payload = request.get_json(silent=True) or {}
+    
+    # Validate required fields
+    productname = (payload.get('productname') or '').strip()
+    if not productname:
+        return jsonify({"ok": False, "error": "productname is required"}), 400
+    
+    price = payload.get('price')
+    try:
+        price = float(price) if price is not None else 0
+    except (TypeError, ValueError):
+        price = 0
+    
+    if price <= 0:
+        return jsonify({"ok": False, "error": "price must be greater than 0"}), 400
+    
+    try:
+        new_product = create_product(
+            name=productname,
+            price=price,
+            description=payload.get('description') or '',
+            category_id=payload.get('categoryid') or payload.get('category_id') or 1,
+            emoji=payload.get('emoji') or '',
+            tags=payload.get('tags') or '',
+            is_active=payload.get('isactive', True),
+            stock_quantity=payload.get('stockquantity', 100),
+        )
+        
+        if not new_product:
+            return jsonify({"ok": False, "error": "Failed to create product - got empty response"}), 500
+        
+        return jsonify({"ok": True, "product": new_product}), 201
+    except Exception as exc:
+        import sys
+        traceback.print_exc(file=sys.stdout)
+        error_msg = str(exc)
+        current_app.logger.error(f"Failed to create product: {error_msg}")
+        return jsonify({"ok": False, "error": f"Database error: {error_msg}"}), 500
+
+
+
+@customer_bp.route('/api/products/<int:product_id>/image', methods=['POST'])
+def api_update_product_image(product_id):
+    """Persist uploaded product image URL."""
+    payload = request.get_json(silent=True) or {}
+    image_url = (payload.get('image_url') or '').strip()
+
+    if not image_url:
+        return jsonify({"ok": False, "error": "image_url is required"}), 400
+
+    try:
+        ok = update_product_image_url(product_id, image_url)
+        if not ok:
+            return jsonify({"ok": False, "error": "Product not found or update failed"}), 404
+        return jsonify({"ok": True, "product_id": product_id, "image_url": image_url}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/products/<int:product_id>', methods=['PUT', 'POST'])
+def api_update_product_metadata(product_id):
+    """Update product metadata (name, price, description, category, emoji, tags, availability)."""
+    payload = request.get_json(silent=True) or {}
+    
+    # Map frontend field names to database field names
+    updates = {}
+    
+    if 'productname' in payload or 'name' in payload:
+        name = (payload.get('productname') or payload.get('name') or '').strip()
+        if name:
+            updates['name'] = name
+    
+    if 'price' in payload:
+        try:
+            price = float(payload.get('price'))
+            updates['price'] = price
+        except (TypeError, ValueError):
+            pass
+    
+    if 'description' in payload or 'desc' in payload:
+        desc = (payload.get('description') or payload.get('desc') or '').strip()
+        if desc:
+            updates['description'] = desc
+    
+    if 'categoryid' in payload or 'category_id' in payload or 'category' in payload:
+        cat = payload.get('categoryid') or payload.get('category_id') or payload.get('category')
+        if cat:
+            updates['category_id'] = cat
+    
+    if 'emoji' in payload:
+        emoji = (payload.get('emoji') or '').strip()
+        if emoji:
+            updates['emoji'] = emoji
+    
+    if 'tags' in payload:
+        tags = (payload.get('tags') or '').strip()
+        if tags:
+            updates['tags'] = tags
+    
+    if 'isactive' in payload or 'is_active' in payload:
+        # Avoid using "or" here, because "False or None" becomes None!
+        is_active = payload.get('isactive') if 'isactive' in payload else payload.get('is_active')
+        
+        if isinstance(is_active, str):
+            is_active = is_active.lower() in ('true', '1', 'yes')
+            
+        updates['is_active'] = bool(is_active)
+    
+    if not updates:
+        return jsonify({"ok": False, "error": "No valid fields to update"}), 400
+    
+    try:
+        ok = update_product_metadata(product_id, **updates)
+        if not ok:
+            return jsonify({"ok": False, "error": "Product not found or update failed"}), 404
+        return jsonify({"ok": True, "product_id": product_id, "updated_fields": updates}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+@customer_bp.route('/api/products/<int:product_id>', methods=['DELETE'])
+def api_delete_product(product_id):
+    """Delete a product. Maps to soft-delete if it's referenced in other tables."""
+    try:
+        success, message = delete_product(product_id)
+        if not success:
+            return jsonify({"ok": False, "error": message}), 400
+        return jsonify({"ok": True, "message": message}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@customer_bp.route('/api/orders', methods=['GET'])
+def api_orders():
+    """List orders with role-based access control enforced at server side."""
+    current_user = get_current_user(required=True)
+    limit = request.args.get('limit', default=20, type=int)
+    limit = max(1, min(limit, 500))
+
+    role = current_user.get('role_name') or _resolve_role(int(current_user.get('roleid') or 3))
+    data = get_orders_for_user(
+        user_id=int(current_user.get('userid')),
+        role=role,
+        limit=limit,
+    )
+    return jsonify({"count": len(data), "items": data}), 200
+
+
+@customer_bp.route('/api/orders/<order_id>', methods=['GET'])
+def api_order_detail(order_id):
+    """Return order detail with strict role authorization."""
+    try:
+        order_id_int = int(order_id)
+    except (TypeError, ValueError):
+        raise APIError(400, 'Invalid order id', 'INVALID_ORDER_ID')
+
+    if order_id_int <= 0:
+        raise APIError(400, 'Invalid order id', 'INVALID_ORDER_ID')
+
+    current_user = get_current_user(required=True)
+    order = get_order_by_id(order_id_int)
+    if not order:
+        raise APIError(404, 'Order not found', 'ORDER_NOT_FOUND')
+
+    assert_order_access(order, current_user)
+
+    items = get_order_items(order_id_int)
+    payment = get_order_payment(order_id_int)
+    return jsonify({
+        "success": True,
+        "data": _serialize_order_detail(order, items, payment)
+    }), 200
+
+
+@customer_bp.route('/api/orders', methods=['POST'])
+def api_create_order():
+    """Create a new order directly from the storefront checkout."""
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        customer_id = int(payload.get('customer_id') or 0)
+    except (TypeError, ValueError):
+        customer_id = 0
+
+    items = payload.get('items') or []
+    if customer_id <= 0:
+        return jsonify({"ok": False, "error": "customer_id is required"}), 400
+    if not isinstance(items, list) or not items:
+        return jsonify({"ok": False, "error": "items must be a non-empty list"}), 400
+
+    shipping_fee = payload.get('shipping_fee')
+    promotion_code = payload.get('promotion_code')
+    delivery_phone = (payload.get('delivery_phone') or '').strip() or None
+    delivery_address = (payload.get('delivery_address') or '').strip() or None
+    city = (payload.get('city') or '').strip() or None
+    notes = (payload.get('notes') or '').strip() or None
+    payment_method = (payload.get('payment_method') or 'cod').strip().lower()
+    customer_name = (payload.get('customer_name') or '').strip() or None
+    lat = payload.get('latitude')
+    lng = payload.get('longitude')
+    estimated_eta = payload.get('estimated_eta')
+
+    address_id = payload.get('address_id')
+    try:
+        address_id = int(address_id) if address_id is not None else None
+    except (TypeError, ValueError):
+        address_id = None
+
+    try:
+        order_summary = create_order(
+            customer_id=customer_id,
+            items=items,
+            shipping_fee=shipping_fee,
+            promotion_code=promotion_code,
+            delivery_phone=delivery_phone,
+            address_id=address_id,
+            delivery_address=delivery_address,
+            city=city,
+            notes=notes,
+            payment_method=payment_method,
+            customer_name=customer_name,
+            lat=lat,
+            lng=lng,
+            estimated_eta=estimated_eta,
+        )
+        return jsonify({"ok": True, "order": order_summary}), 201
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception('Failed to create order')
+        return jsonify({"ok": False, "error": "Failed to create order"}), 500
+
+
+@customer_bp.route('/api/orders/<int:order_id>/status', methods=['POST'])
+def api_update_order_status(order_id):
+    """Update order status to verify write operation."""
+    payload = request.get_json(silent=True) or {}
+    status = payload.get('status')
+    allowed_statuses = {
+        'pending', 'waiting_for_shipper', 'shipping', 'completed', 'cancelled'
+    }
+
+    if status not in allowed_statuses:
+        return jsonify({
+            "ok": False,
+            "error": "Invalid status",
+            "allowed": sorted(list(allowed_statuses))
+        }), 400
+
+    try:
+        shipper_id = payload.get('shipper_id')
+        update_order_status(order_id, status, shipper_id=shipper_id)
+        return jsonify({"ok": True, "order_id": order_id, "new_status": status}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/orders/<int:order_id>/location', methods=['POST'])
+def api_update_shipper_location(order_id):
+    """Endpoint for shippers to update their real-time location (every 5s)."""
+    from models.orders import update_shipper_location
+    payload = request.get_json(silent=True) or {}
+    lat = payload.get('lat')
+    lng = payload.get('lng')
+
+    if lat is None or lng is None:
+        return jsonify({"ok": False, "error": "lat and lng are required"}), 400
+
+    try:
+        ok = update_shipper_location(order_id, float(lat), float(lng))
+        if not ok:
+            return jsonify({"ok": False, "error": "Order not found"}), 404
+        return jsonify({"ok": True}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@customer_bp.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    payload = request.get_json(silent=True) or {}
+    email = (payload.get('email') or '').strip().lower()
+    password = payload.get('password') or ''
+
+    if not email or not password:
+        return jsonify({"ok": False, "error": "Email and password are required"}), 400
+
+    try:
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({"ok": False, "error": "Account not found"}), 404
+
+        if not bool(user.get('isactive')):
+            return jsonify({"ok": False, "error": "Account is inactive"}), 403
+
+        if not verify_password(password, user.get('passwordhash')):
+            return jsonify({"ok": False, "error": "Wrong password"}), 401
+
+        return jsonify({
+            "ok": True,
+            "user": _serialize_auth_user(user)
+        }), 200
+    except Exception:
+        current_app.logger.exception('Login failed')
+        return jsonify({"ok": False, "error": "Login failed"}), 500
+
+
+@customer_bp.route('/api/auth/register', methods=['POST'])
+def api_auth_register():
+    payload = request.get_json(silent=True) or {}
+    full_name = (payload.get('full_name') or '').strip()
+    email = (payload.get('email') or '').strip().lower()
+    phone = (payload.get('phone') or '').strip() or None
+    password = payload.get('password') or ''
+
+    if not full_name or not email or not password:
+        return jsonify({"ok": False, "error": "full_name, email, password are required"}), 400
+
+    if len(password) < 8:
+        return jsonify({"ok": False, "error": "Password must be at least 8 characters"}), 400
+
+    try:
+        existing = get_user_by_email(email)
+        if existing:
+            return jsonify({"ok": False, "error": "Email already registered"}), 409
+
+        password_hash = hash_password(password)
+        new_id = insert_user(full_name, email, password_hash, role_id=3, phone=phone)
+
+        return jsonify({
+            "ok": True,
+            "user": {
+                "id": new_id,
+                "name": full_name,
+                "email": email,
+                "phone": phone,
+                "role": 'customer',
+                "role_id": 3,
+            }
+        }), 201
+    except Exception:
+        current_app.logger.exception('Register failed')
+        return jsonify({"ok": False, "error": "Register failed"}), 500
+
+
+@customer_bp.route('/api/auth/profile', methods=['GET'])
+def api_auth_profile():
+    """Get app profile by email for role mapping after Supabase auth."""
+    email = (request.args.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({"ok": False, "error": "Email is required"}), 400
+
+    try:
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({"ok": False, "error": "Profile not found"}), 404
+        return jsonify({
+            "ok": True,
+            "user": _serialize_auth_user(user)
+        }), 200
+    except Exception:
+        current_app.logger.exception('Load profile failed')
+        return jsonify({"ok": False, "error": "Failed to load profile"}), 500
+
+
+@customer_bp.route('/api/auth/profile', methods=['PUT'])
+def api_auth_update_profile():
+    """Update current customer profile (full_name, phone only)."""
+    current_user = get_current_user(required=True)
+    role = current_user.get('role_name') or _resolve_role(int(current_user.get('roleid') or 3))
+    if role != 'customer':
+        raise APIError(403, 'Only customer can update profile here', 'FORBIDDEN')
+
+    payload = request.get_json(silent=True) or {}
+    if any(key in payload for key in ('role', 'role_id', 'roleId', 'email', 'id', 'user_id', 'userid')):
+        raise APIError(
+            400,
+            'Sensitive fields are not allowed in this endpoint',
+            'SENSITIVE_FIELDS_NOT_ALLOWED',
+            {'allowed_fields': ['full_name', 'phone']}
+        )
+
+    full_name = require_non_empty_name(payload.get('full_name') or payload.get('name') or current_user.get('fullname'))
+    phone = normalize_phone(payload.get('phone')) if 'phone' in payload else current_user.get('phone')
+
+    update_payload = {
+        'fullname': full_name,
+        'phone': phone,
+    }
+
+    updated = update_user(int(current_user['userid']), **update_payload)
+    if not updated:
+        raise APIError(500, 'Profile update failed', 'PROFILE_UPDATE_FAILED')
+
+    refreshed = get_user_by_id(int(current_user['userid']))
+    return jsonify({
+        'success': True,
+        'message': 'Profile updated successfully',
+        'user': _serialize_auth_user(refreshed),
+    }), 200
