@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary brand colors - Fire theme 🔥 -->
+    <color name="primary">#E53935</color>
+    <color name="primary_dark">#C62828</color>
+    <color name="primary_light">#EF5350</color>
+
+    <!-- Secondary/Accent -->
+    <color name="secondary">#FF6D00</color>
+    <color name="secondary_dark">#E65100</color>
+    <color name="accent">#FFD600</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#BDBDBD</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Background colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+
+    <!-- Status colors -->
+    <color name="status_pending">#FFA726</color>
+    <color name="status_waiting">#42A5F5</color>
+    <color name="status_shipping">#7E57C2</color>
+    <color name="status_completed">#66BB6A</color>
+    <color name="status_cancelled">#EF5350</color>
+
+    <!-- Other -->
+    <color name="divider">#E0E0E0</color>
+    <color name="ripple">#20E53935</color>
+    <color name="overlay_dark">#80000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShisaFood</string>
+
+    <!-- Auth -->
+    <string name="login_title">Đăng Nhập</string>
+    <string name="register_title">Đăng Ký</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Mật khẩu</string>
+    <string name="fullname_hint">Họ và tên</string>
+    <string name="phone_hint">Số điện thoại</string>
+    <string name="btn_login">Đăng Nhập</string>
+    <string name="btn_register">Đăng Ký</string>
+    <string name="no_account">Chưa có tài khoản? Đăng ký</string>
+    <string name="have_account">Đã có tài khoản? Đăng nhập</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_cart">Giỏ hàng</string>
+    <string name="nav_orders">Đơn hàng</string>
+    <string name="nav_profile">Cá nhân</string>
+
+    <!-- Product -->
+    <string name="add_to_cart">Thêm vào giỏ</string>
+    <string name="product_detail">Chi tiết sản phẩm</string>
+    <string name="category_all">Tất cả</string>
+    <string name="search_hint">Tìm kiếm món ăn…</string>
+
+    <!-- Cart -->
+    <string name="cart_empty">Giỏ hàng trống</string>
+    <string name="checkout">Thanh toán</string>
+    <string name="subtotal">Tạm tính</string>
+    <string name="shipping_fee">Phí giao hàng</string>
+    <string name="total">Tổng cộng</string>
+
+    <!-- Order -->
+    <string name="order_history">Lịch sử đơn hàng</string>
+    <string name="no_orders">Chưa có đơn hàng nào</string>
+
+    <!-- Checkout -->
+    <string name="delivery_address">Địa chỉ giao hàng</string>
+    <string name="delivery_phone">SĐT nhận hàng</string>
+    <string name="notes_hint">Ghi chú cho tài xế…</string>
+    <string name="payment_method">Phương thức thanh toán</string>
+    <string name="place_order">Đặt hàng</string>
+
+    <!-- Profile -->
+    <string name="logout">Đăng xuất</string>
+    <string name="confirm_logout">Bạn có chắc muốn đăng xuất?</string>
+
+    <!-- General -->
+    <string name="loading">Đang tải…</string>
+    <string name="error_network">Lỗi kết nối mạng</string>
+    <string name="retry">Thử lại</string>
+    <string name="cancel">Hủy</string>
+    <string name="ok">OK</string>
+    <string name="yes">Có</string>
+    <string name="no">Không</string>
+</resources>
