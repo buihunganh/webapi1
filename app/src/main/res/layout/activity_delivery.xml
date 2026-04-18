@@ -133,6 +133,21 @@
                     android:textSize="14sp"
                     android:textColor="@color/text_primary" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCallCustomer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="Gọi"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/status_shipping"
+                    app:cornerRadius="10dp"
+                    app:icon="@android:drawable/ic_menu_call"
+                    app:iconTint="@color/white"
+                    app:iconPadding="4dp"
+                    app:iconGravity="textStart" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

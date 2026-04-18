@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.location.Location;
 import android.location.Address;
 import android.location.Geocoder;
 import android.net.Uri;
@@ -55,6 +56,8 @@ import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManagerKt;
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -101,11 +104,11 @@ public class DeliveryActivity extends AppCompatActivity {
     private Bitmap shipperMarkerIcon;
     private Bitmap storeMarkerIcon;
     private final OkHttpClient directionsClient = new OkHttpClient();
+    private Double storeLat;
+    private Double storeLng;
 
     private static final long LOCATION_INTERVAL = 5_000; // 5 giây
     private static final long UPLOAD_INTERVAL = 5_000; // 5 giây upload lên server
-    private static final double STORE_LAT = 51.5033;
-    private static final double STORE_LNG = -0.1182;
 
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -133,8 +136,20 @@ public class DeliveryActivity extends AppCompatActivity {
         deliveryLng = getIntent().getDoubleExtra("delivery_lng", 0);
         deliveryAddress = getIntent().getStringExtra("delivery_address");
         deliveryPhone = getIntent().getStringExtra("delivery_phone");
+        if (deliveryPhone == null || deliveryPhone.trim().isEmpty()) {
+            deliveryPhone = getIntent().getStringExtra("customer_phone");
+        }
         notes = getIntent().getStringExtra("notes");
         totalAmount = getIntent().getDoubleExtra("total_amount", 0);
+
+        if (getIntent().hasExtra("store_lat") && getIntent().hasExtra("store_lng")) {
+            storeLat = getIntent().getDoubleExtra("store_lat", 0);
+            storeLng = getIntent().getDoubleExtra("store_lng", 0);
+            if (storeLat == 0d || storeLng == 0d) {
+                storeLat = null;
+                storeLng = null;
+            }
+        }
 
         if (orderId == 0) {
             Toast.makeText(this, "Không tìm thấy đơn hàng!", Toast.LENGTH_SHORT).show();
@@ -149,6 +164,7 @@ public class DeliveryActivity extends AppCompatActivity {
         tvDeliveryPhone = findViewById(R.id.tvDeliveryPhone);
         tvTotalAmount = findViewById(R.id.tvTotalAmount);
         tvNotes = findViewById(R.id.tvNotes);
+        View btnCallCustomer = findViewById(R.id.btnCallCustomer);
 
         tvTitle.setText("🛵 Giao đơn #" + orderId);
         tvOrderId.setText("#" + orderId);
@@ -158,6 +174,10 @@ public class DeliveryActivity extends AppCompatActivity {
         } else {
             tvDeliveryPhone.setText("N/A");
         }
+        String normalizedPhone = normalizePhoneForDial(deliveryPhone);
+        btnCallCustomer.setEnabled(!normalizedPhone.isEmpty());
+        btnCallCustomer.setAlpha(normalizedPhone.isEmpty() ? 0.5f : 1f);
+        btnCallCustomer.setOnClickListener(v -> openDialerWithCustomerPhone());
 
         tvTotalAmount.setText(MoneyUtils.format(totalAmount));
 
@@ -297,12 +317,16 @@ public class DeliveryActivity extends AppCompatActivity {
     private void addStoreMarker() {
         if (pointAnnotationManager == null) return;
 
+        if (!hasStoreCoordinates()) {
+            return;
+        }
+
         if (storeMarkerIcon == null) {
             storeMarkerIcon = createMarkerBitmap(Color.parseColor("#00897B"), "🏪");
         }
 
         PointAnnotationOptions storeOptions = new PointAnnotationOptions()
-                .withPoint(Point.fromLngLat(STORE_LNG, STORE_LAT))
+                .withPoint(Point.fromLngLat(storeLng, storeLat))
                 .withIconImage(storeMarkerIcon)
                 .withTextField("Cửa hàng");
         pointAnnotationManager.create(storeOptions);
@@ -312,21 +336,28 @@ public class DeliveryActivity extends AppCompatActivity {
         return deliveryLat != 0d && deliveryLng != 0d;
     }
 
+    private boolean hasStoreCoordinates() {
+        return storeLat != null && storeLng != null;
+    }
+
     private void resolveDeliveryCoordinatesFromAddress() {
         if (hasDeliveryCoordinates()) {
             return;
         }
-        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
+        String normalizedAddress = normalizeDeliveryAddress(deliveryAddress);
+        if (normalizedAddress == null || normalizedAddress.isEmpty()) {
+            Toast.makeText(this, "Đơn hàng chưa có địa chỉ giao hàng hợp lệ", Toast.LENGTH_SHORT).show();
             return;
         }
         if (!Geocoder.isPresent()) {
+            resolveDeliveryCoordinatesWithMapbox(normalizedAddress);
             return;
         }
 
         new Thread(() -> {
             try {
                 Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-                List<Address> results = geocoder.getFromLocationName(deliveryAddress, 1);
+                List<Address> results = geocoder.getFromLocationName(normalizedAddress, 1);
                 if (results != null && !results.isEmpty()) {
                     Address first = results.get(0);
                     if (first.hasLatitude() && first.hasLongitude()) {
@@ -343,12 +374,82 @@ public class DeliveryActivity extends AppCompatActivity {
                             addDeliveryMarker();
                             Toast.makeText(this, "Đã suy ra tọa độ từ địa chỉ giao hàng", Toast.LENGTH_SHORT).show();
                         });
+                        return;
                     }
                 }
+                resolveDeliveryCoordinatesWithMapbox(normalizedAddress);
             } catch (IOException ignored) {
-                // Keep UI fallback text when geocoder cannot resolve.
+                resolveDeliveryCoordinatesWithMapbox(normalizedAddress);
             }
         }).start();
+    }
+
+    private String normalizeDeliveryAddress(String rawAddress) {
+        if (rawAddress == null) {
+            return null;
+        }
+
+        String trimmed = rawAddress.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        String lower = trimmed.toLowerCase(Locale.US);
+        if (!lower.contains("vietnam") && !lower.contains("việt nam") && !lower.contains("vn")) {
+            return trimmed + ", Vietnam";
+        }
+        return trimmed;
+    }
+
+    private void resolveDeliveryCoordinatesWithMapbox(String normalizedAddress) {
+        String token = getString(R.string.mapbox_access_token);
+        String encodedAddress = URLEncoder.encode(normalizedAddress, StandardCharsets.UTF_8);
+        String geocodeUrl = "https://api.mapbox.com/geocoding/v5/mapbox.places/"
+                + encodedAddress
+                + ".json?limit=1&language=vi&access_token="
+                + token;
+
+        Request request = new Request.Builder().url(geocodeUrl).get().build();
+        directionsClient.newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
+                runOnUiThread(() -> Toast.makeText(DeliveryActivity.this, "Không lấy được tọa độ từ địa chỉ", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
+                try (ResponseBody body = response.body()) {
+                    if (!response.isSuccessful() || body == null) {
+                        runOnUiThread(() -> Toast.makeText(DeliveryActivity.this, "Mapbox geocoding thất bại", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    JsonObject json = JsonParser.parseString(body.string()).getAsJsonObject();
+                    JsonArray features = json.getAsJsonArray("features");
+                    if (features == null || features.size() == 0) {
+                        runOnUiThread(() -> Toast.makeText(DeliveryActivity.this, "Không tìm thấy tọa độ từ địa chỉ khách", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    JsonObject feature = features.get(0).getAsJsonObject();
+                    JsonArray center = feature.getAsJsonArray("center");
+                    if (center == null || center.size() < 2) {
+                        runOnUiThread(() -> Toast.makeText(DeliveryActivity.this, "Dữ liệu tọa độ Mapbox không hợp lệ", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    double lng = center.get(0).getAsDouble();
+                    double lat = center.get(1).getAsDouble();
+
+                    runOnUiThread(() -> {
+                        deliveryLat = lat;
+                        deliveryLng = lng;
+                        addDeliveryMarker();
+                        Toast.makeText(DeliveryActivity.this, "Đã lấy tọa độ khách từ Mapbox", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            }
+        });
     }
 
     private void updateShipperMarker() {
@@ -450,11 +551,54 @@ public class DeliveryActivity extends AppCompatActivity {
         }
 
         boolean useStoreAsOrigin = currentLat == 0d || currentLng == 0d;
-        double originLat = useStoreAsOrigin ? STORE_LAT : currentLat;
-        double originLng = useStoreAsOrigin ? STORE_LNG : currentLng;
 
-        if (useStoreAsOrigin && showToast) {
-            Toast.makeText(this, "Dùng tọa độ cửa hàng làm điểm xuất phát", Toast.LENGTH_SHORT).show();
+        if (useStoreAsOrigin) {
+            tryRouteWithLastKnownLocation(showToast);
+            return;
+        }
+
+        requestMapboxRouteInternal(currentLat, currentLng, showToast);
+    }
+
+    private void tryRouteWithLastKnownLocation(boolean showToast) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestRouteFromStoreOrShowError(showToast);
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(location -> {
+                    if (location != null) {
+                        currentLat = location.getLatitude();
+                        currentLng = location.getLongitude();
+                        updateShipperMarker();
+                        requestMapboxRouteInternal(currentLat, currentLng, showToast);
+                    } else {
+                        requestRouteFromStoreOrShowError(showToast);
+                    }
+                })
+                .addOnFailureListener(e -> requestRouteFromStoreOrShowError(showToast));
+    }
+
+    private void requestRouteFromStoreOrShowError(boolean showToast) {
+        if (hasStoreCoordinates()) {
+            if (showToast) {
+                Toast.makeText(this, "Dùng tọa độ cửa hàng làm điểm xuất phát", Toast.LENGTH_SHORT).show();
+            }
+            requestMapboxRouteInternal(storeLat, storeLng, showToast);
+            return;
+        }
+
+        routeRequested = false;
+        if (showToast) {
+            Toast.makeText(this, "Chưa lấy được GPS hiện tại. Hãy bật định vị rồi thử lại", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void requestMapboxRouteInternal(double originLat, double originLng, boolean showToast) {
+        if (originLat == 0d || originLng == 0d) {
+            routeRequested = false;
+            return;
         }
 
         String from = originLng + "," + originLat;
@@ -480,24 +624,35 @@ public class DeliveryActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
                 try (ResponseBody body = response.body()) {
-                    if (!response.isSuccessful() || body == null) {
+                    if (body == null) {
                         routeRequested = false;
                         if (showToast) {
+                            runOnUiThread(() -> Toast.makeText(DeliveryActivity.this, "Mapbox không trả dữ liệu route", Toast.LENGTH_SHORT).show());
+                        }
+                        return;
+                    }
+
+                    String bodyText = body.string();
+                    if (!response.isSuccessful()) {
+                        routeRequested = false;
+                        if (showToast) {
+                            String detail = extractMapboxErrorDetail(bodyText);
                             runOnUiThread(() -> {
-                                Toast.makeText(DeliveryActivity.this, "Không lấy được route Mapbox", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(DeliveryActivity.this, "Mapbox lỗi " + response.code() + ": " + detail, Toast.LENGTH_LONG).show();
                                 openExternalNavigation();
                             });
                         }
                         return;
                     }
 
-                    JsonObject json = JsonParser.parseString(body.string()).getAsJsonObject();
+                    JsonObject json = JsonParser.parseString(bodyText).getAsJsonObject();
                     JsonArray routes = json.getAsJsonArray("routes");
                     if (routes == null || routes.size() == 0) {
                         routeRequested = false;
                         if (showToast) {
+                            String detail = extractMapboxErrorDetail(bodyText);
                             runOnUiThread(() -> {
-                                Toast.makeText(DeliveryActivity.this, "Mapbox chưa tìm được lộ trình", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(DeliveryActivity.this, "Mapbox chưa tìm được lộ trình: " + detail, Toast.LENGTH_LONG).show();
                                 openExternalNavigation();
                             });
                         }
@@ -513,9 +668,21 @@ public class DeliveryActivity extends AppCompatActivity {
                     String geometry = firstRoute.getAsJsonObject().get("geometry").getAsString();
                     List<Point> routePoints = LineString.fromPolyline(geometry, 6).coordinates();
                     runOnUiThread(() -> renderRoute(routePoints, originLat, originLng, showToast));
+                    routeRequested = false;
                 }
             }
         });
+    }
+
+    private String extractMapboxErrorDetail(String body) {
+        try {
+            JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+            String code = json.has("code") ? json.get("code").getAsString() : "unknown";
+            String message = json.has("message") ? json.get("message").getAsString() : "không rõ";
+            return code + " - " + message;
+        } catch (Exception ignored) {
+            return "không rõ nguyên nhân";
+        }
     }
 
     private void renderRoute(List<Point> routePoints, double originLat, double originLng, boolean showToast) {
@@ -551,10 +718,12 @@ public class DeliveryActivity extends AppCompatActivity {
             String origin = currentLat + "," + currentLng;
             gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=" + origin
                     + "&destination=" + destination + "&travelmode=driving");
-        } else {
-            String origin = STORE_LAT + "," + STORE_LNG;
+        } else if (hasStoreCoordinates()) {
+            String origin = storeLat + "," + storeLng;
             gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=" + origin
                     + "&destination=" + destination + "&travelmode=driving");
+        } else {
+            gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=" + destination + "&travelmode=driving");
         }
 
         Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
@@ -644,5 +813,45 @@ public class DeliveryActivity extends AppCompatActivity {
             polylineAnnotationManager.deleteAll();
             polylineAnnotationManager = null;
         }
+    }
+
+    private void openDialerWithCustomerPhone() {
+        String phoneForDial = normalizePhoneForDial(deliveryPhone);
+        if (phoneForDial.isEmpty() && tvDeliveryPhone != null) {
+            phoneForDial = normalizePhoneForDial(String.valueOf(tvDeliveryPhone.getText()));
+        }
+        if (phoneForDial == null || phoneForDial.isEmpty()) {
+            Toast.makeText(this, "Không có số điện thoại khách hợp lệ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent dialIntent = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phoneForDial));
+        try {
+            startActivity(dialIntent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Thiết bị không có ứng dụng gọi điện", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String normalizePhoneForDial(String rawPhone) {
+        if (rawPhone == null) {
+            return "";
+        }
+
+        String trimmed = rawPhone.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (Character.isDigit(c)) {
+                out.append(c);
+            } else if (c == '+' && out.length() == 0) {
+                out.append(c);
+            }
+        }
+        return out.toString();
     }
 }

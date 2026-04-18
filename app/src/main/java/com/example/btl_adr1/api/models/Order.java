@@ -39,16 +39,19 @@ public class Order {
     @SerializedName("delivereddate")
     private String deliveredDate;
 
-    @SerializedName("deliveryphone")
+    @SerializedName(value = "deliveryphone", alternate = {"delivery_phone", "phone", "customer_phone", "receiver_phone"})
     private String deliveryPhone;
 
     @SerializedName("notes")
     private String notes;
 
-    @SerializedName("latitude")
+    @SerializedName(value = "delivery_address", alternate = {"deliveryAddress", "fulladdress", "full_address", "address_text"})
+    private String deliveryAddressRaw;
+
+    @SerializedName(value = "latitude", alternate = {"lat", "delivery_lat", "address_lat", "address_latitude"})
     private Double latitude;
 
-    @SerializedName("longitude")
+    @SerializedName(value = "longitude", alternate = {"lng", "lon", "delivery_lng", "address_lng", "address_longitude"})
     private Double longitude;
 
     @SerializedName("shipper_lat")
@@ -78,7 +81,17 @@ public class Order {
     }
 
     public String getDeliveryAddress() {
-        return address != null ? address.getFullAddress() : null;
+        if (address != null) {
+            String nestedAddress = address.getFullAddress();
+            if (nestedAddress != null && !nestedAddress.trim().isEmpty()) {
+                return nestedAddress;
+            }
+        }
+
+        if (deliveryAddressRaw != null && !deliveryAddressRaw.trim().isEmpty()) {
+            return deliveryAddressRaw;
+        }
+        return null;
     }
 
     public Integer getShipperId() { return shipperId; }
@@ -112,11 +125,22 @@ public class Order {
     public String getDeliveredDate() { return deliveredDate; }
     public void setDeliveredDate(String deliveredDate) { this.deliveredDate = deliveredDate; }
 
-    public String getDeliveryPhone() { return deliveryPhone; }
+    public String getDeliveryPhone() {
+        if (deliveryPhone != null && !deliveryPhone.trim().isEmpty()) {
+            return deliveryPhone;
+        }
+        if (customer != null && customer.getPhone() != null && !customer.getPhone().trim().isEmpty()) {
+            return customer.getPhone();
+        }
+        return null;
+    }
     public void setDeliveryPhone(String deliveryPhone) { this.deliveryPhone = deliveryPhone; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getDeliveryAddressRaw() { return deliveryAddressRaw; }
+    public void setDeliveryAddressRaw(String deliveryAddressRaw) { this.deliveryAddressRaw = deliveryAddressRaw; }
 
     public Double getLatitude() { return latitude; }
     public void setLatitude(Double latitude) { this.latitude = latitude; }
@@ -169,10 +193,10 @@ public class Order {
     }
 
     public static class AddressInfo {
-        @SerializedName("city")
+        @SerializedName(value = "city", alternate = {"province", "state"})
         private String city;
 
-        @SerializedName("fulladdress")
+        @SerializedName(value = "fulladdress", alternate = {"full_address", "address", "street_address", "delivery_address"})
         private String fullAddress;
 
         public String getCity() { return city; }

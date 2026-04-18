@@ -1,6 +1,10 @@
 package com.example.btl_adr1.utils;
 
+import android.os.Build;
+
 import com.example.btl_adr1.BuildConfig;
+
+import java.net.URI;
 
 public class Constants {
     // ====================================================
@@ -16,8 +20,80 @@ public class Constants {
             return "http://10.0.2.2:5500/";
         }
 
-        String trimmed = rawUrl.trim();
+        String trimmed = adaptHostForEmulator(rawUrl.trim());
         return trimmed.endsWith("/") ? trimmed : trimmed + "/";
+    }
+
+    private static String adaptHostForEmulator(String url) {
+        if (!isProbablyEmulator()) {
+            return url;
+        }
+
+        try {
+            URI uri = new URI(url);
+            String host = uri.getHost();
+            if (host == null || !isLocalOrLanHost(host)) {
+                return url;
+            }
+
+            StringBuilder rebuilt = new StringBuilder();
+            rebuilt.append(uri.getScheme()).append("://").append("10.0.2.2");
+
+            if (uri.getPort() != -1) {
+                rebuilt.append(":").append(uri.getPort());
+            }
+
+            if (uri.getRawPath() != null && !uri.getRawPath().isEmpty()) {
+                rebuilt.append(uri.getRawPath());
+            }
+            if (uri.getRawQuery() != null && !uri.getRawQuery().isEmpty()) {
+                rebuilt.append("?").append(uri.getRawQuery());
+            }
+            if (uri.getRawFragment() != null && !uri.getRawFragment().isEmpty()) {
+                rebuilt.append("#").append(uri.getRawFragment());
+            }
+
+            return rebuilt.toString();
+        } catch (Exception ignored) {
+            return url;
+        }
+    }
+
+    private static boolean isLocalOrLanHost(String host) {
+        if ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host)) {
+            return true;
+        }
+
+        String[] parts = host.split("\\.");
+        if (parts.length != 4) {
+            return false;
+        }
+
+        try {
+            int first = Integer.parseInt(parts[0]);
+            int second = Integer.parseInt(parts[1]);
+
+            if (first == 10) {
+                return true;
+            }
+            if (first == 172 && second >= 16 && second <= 31) {
+                return true;
+            }
+            return first == 192 && second == 168;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isProbablyEmulator() {
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT);
     }
 
     // SharedPreferences keys

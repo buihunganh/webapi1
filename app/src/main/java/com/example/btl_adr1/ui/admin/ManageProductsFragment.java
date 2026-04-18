@@ -1,10 +1,7 @@
 package com.example.btl_adr1.ui.admin;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,15 +27,13 @@ import com.example.btl_adr1.api.ApiClient;
 import com.example.btl_adr1.api.ApiService;
 import com.example.btl_adr1.api.models.Product;
 import com.example.btl_adr1.api.models.ProductListResponse;
+import com.example.btl_adr1.utils.SupabaseStorageUploader;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.JsonObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -205,6 +200,11 @@ public class ManageProductsFragment extends Fragment {
                         return;
                     }
 
+                    if (!imageUrl.isEmpty() && (imageUrl.startsWith("content://") || imageUrl.startsWith("data:"))) {
+                        Toast.makeText(requireContext(), "Anh chua upload len storage. Hay bam Chon anh lai de app upload Supabase", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
                     JsonObject json = new JsonObject();
                     json.addProperty("productname", name);
                     json.addProperty("price", price);
@@ -297,14 +297,6 @@ public class ManageProductsFragment extends Fragment {
             return;
         }
 
-        String imageValue = imageUri.toString();
-        String encoded = encodeImageAsDataUrl(imageUri);
-        if (encoded != null && !encoded.isEmpty()) {
-            imageValue = encoded;
-        }
-
-        activeImageUrlInput.setText(imageValue);
-
         if (activeImagePreview != null) {
             Glide.with(this)
                     .load(imageUri)
@@ -312,22 +304,30 @@ public class ManageProductsFragment extends Fragment {
                     .placeholder(android.R.drawable.ic_menu_gallery)
                     .into(activeImagePreview);
         }
+
+        activeImageUrlInput.setText("");
+        activeImageUrlInput.setHint("Dang upload len Supabase...");
+
+        SupabaseStorageUploader.uploadProductImage(requireContext(), imageUri, new SupabaseStorageUploader.UploadCallback() {
+            @Override
+            public void onSuccess(@NonNull String publicUrl) {
+                if (!isAdded() || activeImageUrlInput == null) {
+                    return;
+                }
+                activeImageUrlInput.setHint("Image URL");
+                activeImageUrlInput.setText(publicUrl);
+                Toast.makeText(requireContext(), "Upload anh thanh cong", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (!isAdded() || activeImageUrlInput == null) {
+                    return;
+                }
+                activeImageUrlInput.setHint("Image URL");
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
-    private String encodeImageAsDataUrl(@NonNull Uri imageUri) {
-        try (InputStream in = requireContext().getContentResolver().openInputStream(imageUri)) {
-            if (in == null) return null;
-
-            Bitmap bitmap = BitmapFactory.decodeStream(in);
-            if (bitmap == null) return null;
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
-            byte[] bytes = out.toByteArray();
-            String base64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
-            return "data:image/jpeg;base64," + base64;
-        } catch (IOException e) {
-            return null;
-        }
-    }
 }
