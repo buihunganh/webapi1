@@ -2,7 +2,19 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-val apiBaseUrl = (project.findProperty("API_BASE_URL") as String?) ?: "http://10.0.2.2:5500/"
+val localProperties = java.util.Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        localPropsFile.inputStream().use { load(it) }
+    }
+}
+
+val apiBaseUrl = (
+    localProperties.getProperty("API_BASE_URL")
+        ?: (project.findProperty("API_BASE_URL") as String?)
+        ?: System.getenv("API_BASE_URL")
+        ?: "http://10.0.2.2:5500/"
+).trim()
 
 android {
     namespace = "com.example.btl_adr1"
